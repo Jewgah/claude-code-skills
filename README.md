@@ -1,6 +1,6 @@
 # claude-code-skills
 
-Battle-tested [Claude Code](https://claude.com/claude-code) skills and slash commands for reviewing work **before** it ships — a deep multi-agent code review, and an adversarial plan review.
+Battle-tested [Claude Code](https://claude.com/claude-code) skills and slash commands for shipping safely — a deep multi-agent code review, an adversarial plan review, and a scaffolder that installs a tailored agent team into any repo.
 
 ## What's inside
 
@@ -8,6 +8,7 @@ Battle-tested [Claude Code](https://claude.com/claude-code) skills and slash com
 |---------|------|--------------|
 | `/review-deep` | Skill | Deep multi-agent code review of your local working tree. Spawns 4 parallel reviewer agents (dependency impact, race conditions & state safety, logic/security/tests, tenant isolation), cross-checks their findings, then sends skeptic agents to adversarially verify each contestable finding before anything reaches the report. |
 | `/review-plan` | Slash command | Critically reviews a plan/approach *before* you implement it: challenges assumptions against the actual code, audits failure paths, checks blast radius, lists what the plan *doesn't* mention, plays devil's advocate, and ends with a Go / Adjust / Rethink verdict. |
+| `/init-agents` | Skill | Scaffolds a tailored Claude Code **agent team** into the current repo: detects the stack (JS/TS, PHP, Python, Go, Rust — monorepos too), then proposes and writes specialized subagents (`.claude/agents/`), pipeline commands like `/feature` and `/fix` (`.claude/commands/`), quality hooks (format-on-edit, guard), and a documented `CLAUDE.md` section. Everything is committed to git so the whole team gets it. Supports `minimal`/`full` tiers, project or user scope, and clean `uninstall`. |
 
 ### Why multi-agent review?
 
@@ -18,17 +19,12 @@ A single-pass review is biased toward confirming its own findings and misses cro
 ```bash
 git clone https://github.com/Jewgah/claude-code-skills.git
 cd claude-code-skills
-
-# review-deep (a skill — folder goes under ~/.claude/skills/)
-mkdir -p ~/.claude/skills
-cp -r skills/review-deep ~/.claude/skills/
-
-# review-plan (a slash command — single file under ~/.claude/commands/)
-mkdir -p ~/.claude/commands
-cp commands/review-plan.md ~/.claude/commands/
+./install.sh
 ```
 
-Start a new Claude Code session — they show up as `/review-deep` and `/review-plan`.
+The script copies skills to `~/.claude/skills/` and commands to `~/.claude/commands/`, skipping anything you already have. Prefer manual? Skills are folders (`cp -r skills/<name> ~/.claude/skills/`), commands are single files (`cp commands/<name>.md ~/.claude/commands/`).
+
+Start a new Claude Code session — they show up as slash commands.
 
 ## Usage
 
@@ -37,8 +33,13 @@ Start a new Claude Code session — they show up as `/review-deep` and `/review-
 /review-deep staged         # only staged changes
 /review-deep last-commit    # the last commit
 /review-deep branch         # whole branch vs its base
+
 /review-plan                # review the active plan-mode plan or last proposed approach
 /review-plan <paste plan>   # review a specific plan/approach
+
+/init-agents                # scaffold an agent team into the current repo (minimal tier)
+/init-agents full           # full tier: more agents, pipeline commands, hooks
+/init-agents uninstall      # cleanly remove what it installed
 ```
 
 **When to use which:** `/review-plan` before you write code; `/review-deep` before a risky change ships. For a fast everyday pre-commit pass, a plain single-pass review is enough — these are the heavy artillery.
