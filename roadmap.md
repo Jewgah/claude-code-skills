@@ -5,6 +5,7 @@
 - [x] `/review-deep` — deep multi-agent code review (4 parallel reviewers + adversarial skeptic verification, diff-sized fan-out)
 - [x] `/review-plan` — pre-implementation plan review (assumptions, failure paths, blast radius, devil's advocate, Go/Adjust/Rethink verdict)
 - [x] `/init-agents` — agent-team scaffolder (stack detection, agents/commands/hooks templates, minimal/full tiers, uninstall)
+- [x] `/loopable` — automation scout + builder (mines recurrence signals, ranks candidates, then plan → /review-plan → implement → /review-deep → commit → ticket)
 - [x] `install.sh` — one-shot installer (idempotent, skips existing)
 - [x] README with install + usage instructions
 - [x] MIT license
@@ -15,6 +16,10 @@
 - [ ] Screenshots / sample review output in README
 
 ## Changelog
+
+### 2026-06-16 — /loopable skill
+- Ported `/loopable` (automation scout + builder) from private collection — sanitized client names and the private `/jira` dependency (ticket step now writes markdown directly); composes in-repo `/review-plan` + `/review-deep`
+- README: loopable table row + usage block; roadmap updated
 
 ### 2026-06-04 — /init-agents + installer (8406533 → this commit)
 - Ported `/init-agents` skill (15 files: 6 agent templates, 4 pipeline commands, 2 hooks, settings partial) — verified clean of private references

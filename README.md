@@ -9,6 +9,7 @@ Battle-tested [Claude Code](https://claude.com/claude-code) skills and slash com
 | `/review-deep` | Skill | Deep multi-agent code review of your local working tree. Spawns 4 parallel reviewer agents (dependency impact, race conditions & state safety, logic/security/tests, tenant isolation), cross-checks their findings, then sends skeptic agents to adversarially verify each contestable finding before anything reaches the report. |
 | `/review-plan` | Slash command | Critically reviews a plan/approach *before* you implement it: challenges assumptions against the actual code, audits failure paths, checks blast radius, lists what the plan *doesn't* mention, plays devil's advocate, and ends with a Go / Adjust / Rethink verdict. |
 | `/init-agents` | Skill | Scaffolds a tailored Claude Code **agent team** into the current repo: detects the stack (JS/TS, PHP, Python, Go, Rust — monorepos too), then proposes and writes specialized subagents (`.claude/agents/`), pipeline commands like `/feature` and `/fix` (`.claude/commands/`), quality hooks (format-on-edit, guard), and a documented `CLAUDE.md` section. Everything is committed to git so the whole team gets it. Supports `minimal`/`full` tiers, project or user scope, and clean `uninstall`. |
+| `/loopable` | Skill | Finds recurring work worth automating, then ships the top candidate end-to-end. Mines git history, manual scripts, Claude usage, and docs for chores with a rhythm; scores them on frequency/determinism/verifiability/blast-radius; maps each to one mechanism (`/loop`, `/schedule`, hook, cron, workflow, or plain script). Then takes the winner through the full delivery flow — plan → `/review-plan` → implement → `/review-deep` → fix every finding → commit → write a ticket. Gates deploys/pushes/DB changes behind explicit consent. |
 
 ### Why multi-agent review?
 
@@ -40,11 +41,16 @@ Start a new Claude Code session — they show up as slash commands.
 /init-agents                # scaffold an agent team into the current repo (minimal tier)
 /init-agents full           # full tier: more agents, pipeline commands, hooks
 /init-agents uninstall      # cleanly remove what it installed
+
+/loopable                   # find the top recurring chore and ship its automation end-to-end
+/loopable scan              # diagnose-only: rank candidates, build nothing
+/loopable "#2"              # build the #2 candidate from the last ranked table
+/loopable releases          # focus the scan on a given area
 ```
 
-**When to use which:** `/review-plan` before you write code; `/review-deep` before a risky change ships. For a fast everyday pre-commit pass, a plain single-pass review is enough — these are the heavy artillery.
+**When to use which:** `/review-plan` before you write code; `/review-deep` before a risky change ships; `/loopable` when you suspect you're doing the same chore by hand on a rhythm and want it automated. For a fast everyday pre-commit pass, a plain single-pass review is enough — those reviews are the heavy artillery.
 
-No dependencies — both work with stock Claude Code (`/review-deep` uses the built-in Explore agent type).
+No external dependencies — all work with stock Claude Code (`/review-deep` uses the built-in Explore agent type). `/loopable` composes `/review-plan` and `/review-deep`, which ship in this repo.
 
 ## License
 
