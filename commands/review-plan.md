@@ -8,6 +8,14 @@ Locate the plan to review, in this priority order, and state which source you us
 2. Else, the active plan-mode plan — read the most recently modified file in `~/.claude/plans/` (`ls -t ~/.claude/plans/*.md | head -1`).
 3. Else, the approach described in my previous message.
 
+**State the plan file's path AND its first heading before reviewing** — parallel sessions
+write plans too, and the `ls -t` fallback can grab another session's file; naming both makes
+a mismatch visible immediately.
+
+**Proportionality**: depth scales with blast radius. A one-line fix gets a one-paragraph
+review; do not manufacture findings to fill the checklist — an honest "nothing found" on a
+step is a valid answer.
+
 Critically review the current plan or approach before proceeding with implementation:
 
 1. **Restate the goal**: What exactly are we trying to achieve? Strip away assumptions and re-read the original request.
@@ -15,7 +23,25 @@ Critically review the current plan or approach before proceeding with implementa
 2. **Challenge assumptions**: For each step in the plan:
    - What are we assuming to be true? Is it actually true?
    - Read the relevant code/docs to verify — don't rely on memory or guesses
+   - For the RISKIEST assumption, prefer a cheap runnable read-only check (a script, a
+     query, a curl) over reading code when one exists — an executed proof beats an
+     inferred one (e.g. run the exact DB query the plan relies on against a copy/prod
+     read-only before betting the fix on it).
    - Are we solving the right problem, or a symptom?
+
+2b. **Project-rules check**: grep the target repo's `CLAUDE.md` + recalled memories for
+   project-specific rules the plan touches — branch/deploy gotchas, "new query ships its
+   index in the same commit", i18n locale count, commit/dependency conventions. Cite each
+   rule the plan interacts with and say whether it complies. (A missing-index rule
+   violation shipped to prod precisely because no review step looked for repo rules.)
+
+2c. **Root-cause / attribution audit** (when the plan — or the message/diagnosis it rests on —
+   pins a fault, *especially* on an external party or vendor): (a) was OUR side of the flow
+   inspected and the exact code path cited? Where an error *originates* is not where it is
+   *caused*. (b) Is a "systemic" claim backed by ≥2 independent data points, not one case? (c) Has
+   the "assume it IS us" devil's-advocate pass been run? If any answer is no, the attribution is
+   unproven — flag it and demand the check before the plan proceeds. (Origin: a confident
+   external-blame diagnosis shipped with none of these done.)
 
 3. **Error scenario audit**: Walk through every failure path:
    - What happens if the input is missing, malformed, or unexpected?
@@ -40,7 +66,7 @@ Critically review the current plan or approach before proceeding with implementa
 
 7. **Deploy & reversibility**: If the plan touches a server or DB:
    - One-way door (hard to reverse) or two-way (easy)? Call it out.
-   - Servers others edit in place: did we **pull before deploy**, and is the prod config (`.htaccess`, etc.) being **merged, not overwritten**?
+   - Servers that colleagues also edit in place: did we **pull before deploy**, is there **explicit consent this turn**, and is prod config (`.htaccess`, `.env`, vhost) being **merged, not overwritten**?
    - DB change with no migration system: is the hand-applied DB step written down and reversible?
 
 8. **Devil's advocate**: Before the verdict, argue the strongest case that this plan is *wrong or unnecessary*. What would a skeptic who wants to kill this plan say?

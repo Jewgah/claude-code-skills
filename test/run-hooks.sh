@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Proves the hooks behave as documented, against a throwaway repo in a temp dir.
+# Touches nothing of yours: fake HOME, fake skill log, temp git repo.
+#   bash test/run-hooks.sh
+K="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+R="$T/repo"; FH="$T/home"; LOG="$T/skill.log"
+# HOOKS=~/.claude/hooks runs these assertions against your INSTALLED hooks instead of the kit's.
+HOOKS="${HOOKS:-$K/hooks}"
+GATE="$HOOKS/commit-review-gate.sh"
+# some setups keep the usage logger at ~/.claude/log-skill.sh instead of in hooks/
+LOGGER="$HOOKS/log-skill.sh"; [ -f "$LOGGER" ] || LOGGER="$HOME/.claude/log-skill.sh"
+pass=0; fail=0
+ok()  { pass=$((pass+1)); echo "  PASS  $1"; }
+bad() { fail=$((fail+1)); echo "  FAIL  $1  -> $2"; }
+
+command -v jq >/dev/null || { echo "jq required"; exit 1; }
+command -v node >/dev/null || { echo "node required"; exit 1; }
+
+mkdir -p "$R/sub" "$FH/.claude"
+cd "$R"
+git init -q .; git config user.email t@t.t; git config user.name t
+echo v1 > a.txt; git add a.txt; git commit -qm init
+echo v2 > a.txt   # an unreviewed change
+
+payload()  { jq -n --arg c "$1" --arg w "${2:-$R}" '{tool_input:{command:$c},cwd:$w}'; }
+decision() { local o; o="$(cat)"; [ -z "$o" ] && { echo allow; return; }
+             printf '%s' "$o" | jq -r '.hookSpecificOutput.permissionDecision // "allow"' 2>/dev/null; }
+run()      { payload "$1" "$2" | HOME="$FH" CLAUDE_SKILL_LOG="$LOG" bash "$GATE"; }
+review_now() { printf '%s\t%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "${1:-review}" typed "${2:-$R}" >> "$LOG"; }
+
+echo "== commit gate =="
+: > "$LOG"
+d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "unreviewed commit denied" || bad "unreviewed commit" "$d"
+d=$(run "git status" | decision);                 [ "$d" = allow ] && ok "non-commit command allowed" || bad "non-commit" "$d"
+d=$(run "git commit-tree abc" | decision);        [ "$d" = deny ]  && ok "git commit-tree also denied (harmless over-reach)" || bad "commit-tree" "$d"
+review_now
+d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "allowed after a review in this repo" || bad "after review" "$d"
+d=$(run "git commit -m x" "$R/sub" | decision);   [ "$d" = allow ] && ok "subdir cwd resolves to the repo root" || bad "subdir cwd" "$d"
+: > "$LOG"; review_now review /other/repo
+d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "a review in a DIFFERENT repo does not count" || bad "other repo" "$d"
+: > "$LOG"; printf '%s\treview\ttyped\t%s\n' "2020-01-01T00:00:00" "$R" >> "$LOG"
+d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "a review older than the last commit does not count" || bad "stale review" "$d"
+d=$(run "git -C /tmp/x commit -m x" | decision);  [ "$d" = deny ]  && ok "git -C <dir> commit matched" || bad "git -C" "$d"
+d=$(run "git -c user.name=z commit -m x" | decision); [ "$d" = deny ] && ok "git -c k=v commit matched" || bad "git -c" "$d"
+d=$(run "git commit --no-verify -m x" | decision);[ "$d" = deny ]  && ok "--no-verify is still gated" || bad "--no-verify" "$d"
+d=$(run "git commit -m x" /tmp | decision);       [ "$d" = allow ] && ok "outside a repo: nothing to gate" || bad "non-repo" "$d"
+touch "$FH/.claude/.skip-commit-review"
+d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "bypass marker allows" || bad "bypass" "$d"
+[ -f "$FH/.claude/.skip-commit-review" ] && bad "bypass consumed" "marker still there" || ok "bypass marker is one-shot"
+
+echo "== plan gate =="
+d=$(jq -n '{tool_input:{plan:"1. do the thing"}}' | node "$HOOKS/plan-review-gate.mjs" | decision)
+[ "$d" = deny ] && ok "unreviewed plan denied" || bad "unreviewed plan" "$d"
+out=$(jq -n '{tool_input:{plan:"1. do it\n<!-- plan-reviewed -->"}}' | node "$HOOKS/plan-review-gate.mjs")
+[ -z "$out" ] && ok "plan carrying the marker is allowed" || bad "marked plan" "$out"
+d=$(printf 'not json' | node "$HOOKS/plan-review-gate.mjs" | decision)
+[ "$d" = deny ] && ok "malformed payload fails closed" || bad "malformed payload" "$d"
+
+echo "== statusline =="
+: > "$LOG"
+s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
+case "$s" in *UNREVIEWED*) ok "shows UNREVIEWED: $s";; *) bad "statusline unreviewed" "$s";; esac
+review_now review-deep
+s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
+case "$s" in *"| reviewed"*) ok "shows reviewed: $s";; *) bad "statusline reviewed" "$s";; esac
+s=$(cd /tmp && bash "$HOOKS/statusline.sh"); [ "$s" = "no repo" ] && ok "outside a repo: $s" || bad "statusline no-repo" "$s"
+
+echo "== usage logger =="
+rm -f "$FH/.claude/skill-usage.log"
+jq -n --arg w "$R" '{prompt:"/review-deep staged",cwd:$w}' | HOME="$FH" bash "$LOGGER" prompt
+line=$(tail -1 "$FH/.claude/skill-usage.log" 2>/dev/null)
+case "$line" in *$'\t'review-deep$'\t'typed*) ok "typed /command logged";; *) bad "logger typed" "$line";; esac
+jq -n --arg w "$R" '{prompt:"/Users/someone/file.md is the path",cwd:$w}' | HOME="$FH" bash "$LOGGER" prompt
+n=$(wc -l < "$FH/.claude/skill-usage.log" | tr -d ' ')
+[ "$n" = 1 ] && ok "a pasted path is not logged as a command" || bad "path false-positive" "$n lines"
+jq -n --arg w "$R" '{tool_input:{skill:"review"},cwd:$w}' | HOME="$FH" bash "$LOGGER" tool
+case "$(tail -1 "$FH/.claude/skill-usage.log")" in *$'\t'review$'\t'nl*) ok "natural-language skill use logged";; *) bad "logger nl" "";; esac
+
+echo; echo "RESULT: $pass passed, $fail failed"
+exit $((fail > 0))
