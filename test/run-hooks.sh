@@ -49,6 +49,33 @@ touch "$FH/.claude/.skip-commit-review"
 d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "bypass marker allows" || bad "bypass" "$d"
 [ -f "$FH/.claude/.skip-commit-review" ] && bad "bypass consumed" "marker still there" || ok "bypass marker is one-shot"
 
+# The repo committed to is not always .cwd. Resolving from .cwd alone mis-gated BOTH
+# directions; the dangerous half PASSED an unreviewed commit whenever the session sat
+# in some other, recently reviewed repo.
+echo "== commit gate: target repo resolution =="
+R2="$T/repo2"; mkdir -p "$R2"
+git init -q "$R2"; git -C "$R2" config user.email t@t.t; git -C "$R2" config user.name t
+echo v1 > "$R2/a.txt"; git -C "$R2" add a.txt; git -C "$R2" commit -qm init
+echo v2 > "$R2/a.txt"   # an unreviewed change in repo2
+: > "$LOG"; review_now review "$R"      # ONLY repo1 has been reviewed
+d=$(run "cd $R2 && git commit -m x" | decision);  [ "$d" = deny ]  && ok "cd <other repo> + commit is gated on THAT repo" || bad "cd target" "$d"
+d=$(run "git -C $R2 commit -m x" | decision);     [ "$d" = deny ]  && ok "git -C <other repo> is gated on THAT repo" || bad "-C target" "$d"
+d=$(run "cd $R && git commit -m x" "$R2" | decision); [ "$d" = allow ] && ok "reviewed repo reached via cd is allowed" || bad "cd to reviewed" "$d"
+d=$(run "git commit -m 'use git -C $R2 here'" | decision); [ "$d" = allow ] && ok "-C inside the message is not a target" || bad "-C in message" "$d"
+d=$(run "cd /nope/zzz && git commit -m x" | decision); [ "$d" = allow ] && ok "unresolvable target degrades to cwd" || bad "bad target" "$d"
+# A repo path containing a SPACE must still be seen as a commit at all. Matching the -C
+# argument as [^ ]+ missed it entirely, leaving such commits completely ungated.
+SP="$T/my repo"; mkdir -p "$SP"
+git init -q "$SP"; git -C "$SP" config user.email t@t.t; git -C "$SP" config user.name t
+echo v1 > "$SP/a.txt"; git -C "$SP" add a.txt; git -C "$SP" commit -qm init
+echo v2 > "$SP/a.txt"
+d=$(run "git -C \"$SP\" commit -m x" | decision);  [ "$d" = deny ] && ok "quoted -C path with a space is still gated" || bad "-C spaced path" "$d"
+d=$(run "cd \"$SP\" && git commit -m x" | decision); [ "$d" = deny ] && ok "quoted cd path with a space is still gated" || bad "cd spaced path" "$d"
+: > "$LOG"; review_now security-audit "$R"
+d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "security-audit satisfies the gate" || bad "security-audit" "$d"
+s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
+case "$s" in *"| reviewed"*) ok "statusline agrees security-audit counts";; *) bad "statusline security-audit" "$s";; esac
+
 echo "== plan gate =="
 d=$(jq -n '{tool_input:{plan:"1. do the thing"}}' | node "$HOOKS/plan-review-gate.mjs" | decision)
 [ "$d" = deny ] && ok "unreviewed plan denied" || bad "unreviewed plan" "$d"

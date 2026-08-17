@@ -7,7 +7,7 @@ The core idea: the two quality steps everyone skips under pressure — reviewing
 | Gate | Hook | What happens |
 |---|---|---|
 | **Plan review** | `PreToolUse(ExitPlanMode)` | Claude can't show you a plan until it has run `/review-plan` on it and folded the findings in. |
-| **Commit review** | `PreToolUse(Bash)` | `git commit` is denied unless `/review` (or `/review-deep`, `/code-review`, `/security-review`) ran in that repo since the last commit. |
+| **Commit review** | `PreToolUse(Bash)` | `git commit` is denied unless `/review` (or `/review-deep`, `/code-review`, `/security-review`, `/security-audit`) ran in that repo since the last commit. |
 
 Everything else here is either what those gates run, or a tool that reuses their data.
 
@@ -18,11 +18,16 @@ Everything else here is either what those gates run, or a tool that reuses their
 | `/review` | Skill | Fast single-pass review of your uncommitted changes: logic, security, data/state, error handling, performance, breaking changes. The everyday one — no subagents, so it's cheap. |
 | `/review-deep` | Skill | Deep multi-agent review of the local working tree. Spawns 4 parallel reviewers (dependency impact, race conditions & state safety, logic/security/tests, tenant isolation), cross-checks them, then sends skeptic agents to adversarially verify each contestable finding before anything reaches the report. |
 | `/review-plan` | Command | Critically reviews a plan *before* you implement it: challenges assumptions against the actual code, audits failure paths, checks blast radius, greps the repo's own `CLAUDE.md` for rules the plan touches, audits fault attribution, plays devil's advocate, ends with a Go / Adjust / Rethink verdict. |
-| `/loopit` | Skill | Autonomous delivery runner. You write a task checklist; it takes each task through plan → `/review-plan` → implement → verify → review → fix every finding → re-verify → commit → push → client note → tick the box, one at a time, pausing only for genuine product decisions. Nothing is hardcoded to a project — branch rule, verify commands, commit style are all derived from the target repo. |
+| `/battle-test` | Skill | Runs the checks that *can* actually run for the current change, then reports what ran, a score out of 100, and the checks that still need a human. Buckets every check as AUTO / BOOTABLE / MANUAL and refuses anything that could touch real data or a real user. Runs the repo's own tooling only, never a new framework. It reports; it never commits, pushes or deploys. |
+| `/frontend-verify` | Skill | Verifies frontend changes end to end instead of you clicking through pages. Reads console errors and failed network requests first and writes full page state to disk, so it only pulls a snapshot or screenshot into context when a route actually fails. Next.js, React, Vite, any local dev server. |
+| `/security-audit` | Skill | Scans for the usual suspects: hardcoded secrets, missing auth checks, injection, insecure sessions, dependency and config exposure. Counts as a review for the commit gate. |
+| `/loopit` | Skill | Autonomous delivery runner. You write a task checklist; it takes each task through plan → `/review-plan` → implement → verify → review → fix every finding → `/battle-test` → commit → push → client note → tick the box. **Each task runs in its own subagent**, so task #8 doesn't pay to re-read everything tasks #1-7 left in context. Nothing is hardcoded to a project - branch rule, verify commands, commit style are all derived from the target repo. |
 | `/loopable` | Skill | Finds recurring work worth automating, then ships the top candidate end-to-end. Mines git history, manual scripts, Claude usage and docs for chores with a rhythm; scores them on frequency/determinism/verifiability/blast-radius; maps each to one mechanism (`/loop`, `/schedule`, hook, cron, workflow, or plain script). Then runs the full delivery flow on the winner. |
 | `/init-agents` | Skill | Scaffolds a tailored **agent team** into the current repo: detects the stack (JS/TS, PHP, Python, Go, Rust — monorepos too), then writes specialized subagents (`.claude/agents/`), pipeline commands like `/feature` and `/fix`, quality hooks, and a documented `CLAUDE.md` section. `minimal`/`full` tiers, project or user scope, clean `uninstall`. |
 | `/explain-dev` | Command | Turns what you shipped into a structured, jargon-free client update (numbered points + a "how to test" section), ready to paste into WhatsApp/Slack. English or French. |
 | `/vulgarize` | Skill | Same job, casual flowing text instead of a template — reads the diff itself. English or French. |
+| `/choices` | Skill | Turns the open decisions blocking the work into a short message a non-technical stakeholder can answer. For when progress is stuck on a product call, not on code. |
+| `/commit` | Skill | Commits staged changes with a message that explains *why*, and updates `CLAUDE.md` when the change alters something documented there. |
 | `/sessions` | Skill | Lists your recent Claude Code sessions with the exact `claude --resume <id>` command for each. For after a reboot, or "where was that thing I did Tuesday?". |
 | `/skill-stats` | Command | Leaderboard of which of these you actually use, from a durable usage log that survives transcript cleanup. |
 
@@ -56,12 +61,18 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 /loopit                     # run ./loop-tasks.md to completion, one task at a time
 /loopit FX-02               # run a single task from the queue
 
+/battle-test                # run what can be run, score it, list what needs a human
+/frontend-verify            # drive the UI and report console + network failures
+/security-audit             # scan for secrets, auth holes, injection
+
 /loopable                   # find the top recurring chore and ship its automation
 /loopable scan              # diagnose-only: rank candidates, build nothing
 
 /init-agents                # scaffold an agent team into this repo (also: full | uninstall)
 /explain-dev en             # client update for what you just shipped (or: fr)
 /vulgarize en               # the casual version (or: fr)
+/choices                    # turn blocking decisions into a message a human can answer
+/commit                     # commit staged work with a why-focused message
 /sessions                   # recent sessions + resume commands
 /skill-stats                # what you actually use, ranked
 ```
@@ -92,9 +103,11 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 - `git commit-tree` is denied too (substring match). Rare, and the message tells you the way out.
 - Missing `jq` fails **closed** (denies with an explanation) rather than silently disabling itself.
 - Repo paths are matched both physically and logically, so a repo under a symlinked path (`/tmp`, `/var`, a symlinked projects dir) never gets stuck permanently denied.
+- **The repo being committed to is not assumed to be your shell's cwd.** `cd <repo> && git commit` and `git -C <repo> commit` are gated against *that* repo. Earlier versions resolved from cwd alone, which let an unreviewed commit through whenever the session happened to sit in some other, recently reviewed repo. A `-C` or `cd` appearing inside a commit *message* is not mistaken for the target, and anything unparseable falls back to cwd rather than inventing a pass.
+- **Repo paths containing spaces are handled**, quoted or not. Earlier versions matched the `-C` argument as "anything but a space", so `git -C "~/My Projects/app" commit` wasn't recognised as a commit at all and slipped through ungated.
 
 ```bash
-bash test/run-hooks.sh                      # 22 assertions against this repo's copies
+bash test/run-hooks.sh                      # 31 assertions against this repo's copies
 HOOKS=~/.claude/hooks bash test/run-hooks.sh # …or against the ones you installed
 ```
 
@@ -105,6 +118,7 @@ Temp dirs and a fake `HOME` — it touches nothing of yours.
 - `jq` — the commit gate and the installer
 - `node` — the plan gate
 - `python3` — `/sessions` only
+- `npx playwright` - `/frontend-verify` only (and `/battle-test`'s browser pass, which delegates to it)
 - `/review-deep`, `/loopit` and `/loopable` spawn subagents, so they cost real tokens. Use `/review` for everyday work and keep the deep ones for changes that scare you.
 
 ## License

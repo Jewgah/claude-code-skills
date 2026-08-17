@@ -20,7 +20,7 @@ case "$mode" in
     src="nl"
     ;;
   prompt)
-    # ponytail: name must end at whitespace or EOL — a following "/" means a pasted path (/Users/...), not a command
+    # name must end at whitespace or EOL - a following "/" means a pasted path (/Users/...), not a command
     name="$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null \
       | sed -n '1s#^[[:space:]]*/\([A-Za-z0-9:_-]\{1,\}\)\([[:space:]].*\)\{0,1\}$#\1#p')"
     src="typed"

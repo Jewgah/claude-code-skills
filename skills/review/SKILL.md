@@ -43,6 +43,7 @@ Perform a thorough code review of the current changes. Act as a senior developer
 - Are async operations properly awaited?
 - Are errors caught where they should be?
 - Do error paths leave the app in a consistent state?
+- Are failures observable - is the error logged with enough context (ids, operation), and do logs avoid leaking secrets/PII?
 
 ### Performance
 - Any unnecessary re-renders or re-fetches?

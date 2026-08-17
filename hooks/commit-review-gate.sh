@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # commit-review-gate: PreToolUse(Bash). Blocks `git commit` unless a code review
-# (review / review-deep / code-review / security-review) ran since the last commit
+# (review / review-deep / code-review / security-review / security-audit) ran since the last commit
 # in this repo. The model picks the depth; this just enforces that one happened.
-# Reuses ~/.claude/skill-usage.log as the "was it reviewed?" signal — no new state.
+# Reuses ~/.claude/skill-usage.log as the "was it reviewed?" signal - no new state.
 input="$(cat)"
 
 # Fast path: if the raw payload can't even contain a commit, allow instantly (no jq tax).
@@ -16,9 +16,11 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 cmd="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)"
-# Match `git commit` / `git -C <dir> commit` / `git -c k=v commit`. Note: won't see commits
-# buried inside a called script (e.g. `bash deploy.sh`) — those stay ungated.
-printf '%s' "$cmd" | grep -Eq 'git( +-[cC] +[^ ]+)* +commit' || exit 0
+# Match `git commit` / `git -C <dir> commit` / `git -c k=v commit`. The arg may be QUOTED and
+# contain spaces (`git -C "~/My Projects/app" commit`); matching only [^ ]+ there missed the
+# commit entirely and left it completely ungated. Note: won't see commits buried inside a
+# called script (e.g. `bash deploy.sh`) - those stay ungated.
+printf '%s' "$cmd" | grep -Eq 'git( +-[cC] +("[^"]*"|'\''[^'\'']*'\''|[^ ]+))* +commit' || exit 0
 
 # One-shot bypass for a trivial commit: `touch ~/.claude/.skip-commit-review`.
 if [ -f "$HOME/.claude/.skip-commit-review" ]; then
@@ -27,6 +29,36 @@ fi
 
 cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)"
 [ -z "$cwd" ] && cwd="$PWD"
+
+# The repo being committed to is NOT always .cwd. `cd <repo> && git commit` and
+# `git -C <repo> commit` both target another one, and resolving from .cwd alone
+# mis-gated BOTH directions: it denied a genuinely reviewed commit, and (the
+# dangerous half) it PASSED an unreviewed commit whenever the session happened to
+# sit in some other, recently reviewed repo. So read the target out of the command
+# first, and fall back to .cwd.
+target=""
+# 1. `git [-c k=v]... -C <dir> ... commit`. Scan ONLY between `git` and `commit`,
+#    so a -C inside a commit message can never be mistaken for the flag.
+gitseg="${cmd#*git }"; gitseg="${gitseg%%commit*}"
+case "$gitseg" in
+  *-C*) target="$(printf '%s' "$gitseg" | sed -nE 's/.*-C[[:space:]]+("[^"]*"|'\''[^'\'']*'\''|[^[:space:]]+).*/\1/p')" ;;
+esac
+# 2. else a `cd <path>` running BEFORE the git call. Prefix only, for the same
+#    reason: a `cd` inside a -m message must not be read as a directory change.
+if [ -z "$target" ]; then
+  pre="${cmd%%git *}"
+  [ "$pre" != "$cmd" ] && target="$(printf '%s' "$pre" | sed -nE 's/.*(^|[;&|][[:space:]]*)cd[[:space:]]+("[^"]*"|'\''[^'\'']*'\''|[^[:space:]&;|]+).*/\2/p')"
+fi
+# strip one layer of quotes, expand a leading ~, resolve relative against .cwd
+target="${target%\"}"; target="${target#\"}"; target="${target%\'}"; target="${target#\'}"
+case "$target" in "~"|"~/"*) target="$HOME${target#\~}" ;; esac
+case "$target" in ""|/*) ;; *) target="$cwd/$target" ;; esac
+# Trust it ONLY if it really is a repo. A misparse must degrade to .cwd behaviour,
+# never invent a pass for a repo nobody reviewed.
+if [ -n "$target" ] && git -C "$target" rev-parse --show-toplevel >/dev/null 2>&1; then
+  cwd="$target"
+fi
+
 root="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null)"
 [ -z "$root" ] && exit 0   # not a git repo → nothing to gate
 
@@ -46,7 +78,7 @@ log="${CLAUDE_SKILL_LOG:-$HOME/.claude/skill-usage.log}"
 [ -f "$log" ] || log=/dev/null
 # Reviewed since last commit? Single awk pass: right skill, same repo, ts >= threshold.
 if awk -F'\t' -v root="$root" -v rootl="$rootl" -v thr="$thr" '
-    $2 ~ /^(review|review-deep|code-review|security-review)$/ \
+    $2 ~ /^(review|review-deep|code-review|security-review|security-audit)$/ \
     && ($4 == root  || index($4, root  "/") == 1 \
      || $4 == rootl || index($4, rootl "/") == 1) \
     && $1 >= thr { found=1; exit } END { exit(found ? 0 : 1) }' "$log"; then

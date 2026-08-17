@@ -22,9 +22,15 @@ skip. Everything else in the kit is either what those gates run, or a tool that 
 | `/review-deep` | Sends 4 reviewers at your diff from different angles, then sends *skeptics* to disprove what they found, so you only see findings that survived. Slower, costs more. | The change that scares you: money, auth, data, migrations, shared code. |
 | `/review-plan` | Attacks a plan *before* you build it: what is it assuming, what breaks, what did it forget, is there a simpler way. Ends with Go / Adjust / Rethink. | Any plan bigger than a one-liner. Runs automatically in plan mode. |
 | `/loopit` | You write a checklist of tasks; it does all of them, one at a time, start to finish, without asking permission between tasks. | You have 5 small chores and don't want to babysit each one. |
+| `/battle-test` | Runs every check it safely can, gives your change a score out of 100, and hands you the list of things only a human can test. Never touches real data. | After building something, before you call it done. |
+| `/frontend-verify` | Clicks through your web pages for you and reports what broke in the console or the network tab. | You changed the UI and don't want to check every page by hand. |
+| `/security-audit` | Hunts for leaked secrets, missing permission checks and injection holes. | Before going public, or any time money or logins are involved. |
 | `/loopable` | Looks at your repo and history and tells you which recurring chore is worth automating, then builds the top one. | "I keep doing this by hand every week." |
+| `/init-agents` | Sets up a team of specialist assistants inside one repo, tuned to the language it's written in. | A project you'll be working in for a while. |
 | `/explain-dev` | Turns what you just built into a WhatsApp message a non-technical client actually understands, plus how they can test it. `en` or `fr`. | After shipping, when someone non-technical needs to be told. |
 | `/vulgarize` | The same job as `/explain-dev`, but a casual flowing text message instead of a numbered template. Reads the diff itself. | Same moment, when the recipient is informal. |
+| `/choices` | Collects the decisions you're stuck on into one short message someone non-technical can actually answer. | Work is blocked on a decision, not on code. |
+| `/commit` | Saves your staged work with a message that says *why*, not just what. | Every time you commit. |
 | `/sessions` | Lists your recent Claude Code conversations with the exact command to resume each one. | After a reboot, or "where was that thing I did Tuesday?" |
 | `/skill-stats` | Ranks which of these you actually use. | Every month or so, to prune what you never touch. |
 

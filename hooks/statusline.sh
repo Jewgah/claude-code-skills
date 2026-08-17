@@ -17,7 +17,7 @@ if [ "$dirty" != "0" ]; then
   prefix="$(git rev-parse --show-prefix 2>/dev/null)"
   rootl="${PWD%/}"; [ -n "$prefix" ] && rootl="${rootl%/${prefix%/}}"
   if awk -F'\t' -v root="$root" -v rootl="$rootl" -v thr="$thr" '
-      $2 ~ /^(review|review-deep|code-review|security-review)$/ \
+      $2 ~ /^(review|review-deep|code-review|security-review|security-audit)$/ \
       && ($4 == root  || index($4, root  "/") == 1 \
        || $4 == rootl || index($4, rootl "/") == 1) \
       && $1 >= thr { f=1; exit } END { exit(f?0:1) }' "$log"; then

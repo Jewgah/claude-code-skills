@@ -28,6 +28,13 @@ Critically review the current plan or approach before proceeding with implementa
      inferred one (e.g. run the exact DB query the plan relies on against a copy/prod
      read-only before betting the fix on it).
    - Are we solving the right problem, or a symptom?
+   - **Does the plan ADD capability (a column, table, setting, endpoint, screen section)?
+     Then it must already carry a measured "what already exists" section.** If it does not,
+     that is a finding on its own: say so and run the lookup yourself before judging the rest.
+     Do not accept "it does not exist" as a claim, accept it as a grep or a `COUNT(*)`.
+     This is the check that turned two plans around in one afternoon: one was adding empty
+     inputs beside fields populated on 203 rows out of 203, the other was creating a settings
+     table next to an existing one. Both plans read as sound until the lookup was run.
 
 2b. **Project-rules check**: grep the target repo's `CLAUDE.md` + recalled memories for
    project-specific rules the plan touches — branch/deploy gotchas, "new query ships its

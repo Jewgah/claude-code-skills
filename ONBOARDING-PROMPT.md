@@ -22,7 +22,7 @@ what it skipped and show me a diff of mine vs the kit's so I can decide which to
 `~/.claude/settings.json` is still valid JSON and tell me the backup file's name.
 
 **Phase 3 — prove the gates work.** Don't take the install on faith. First run the bundled suite:
-`bash test/run-hooks.sh` (22 assertions, temp dirs + fake HOME, touches nothing of mine) and show me
+`bash test/run-hooks.sh` (31 assertions, temp dirs + fake HOME, touches nothing of mine) and show me
 the tail of its output. If anything fails, fix it and tell me what was wrong. Then verify by hand:
 1. Create a throwaway git repo in a temp dir with one committed file, then change that file.
 2. Feed the commit gate a realistic hook payload on stdin and show me the raw JSON it returns —

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // plan-review-gate: PreToolUse hook on ExitPlanMode.
 // Forces a review-plan pass before any plan is presented for approval.
-// ponytail: stateless — a sentinel in the plan text breaks the re-submit loop, no flag files.
+// stateless - a sentinel in the plan text breaks the re-submit loop, no flag files.
 
 let raw = "";
 process.stdin.on("data", c => (raw += c));
