@@ -12,7 +12,7 @@ skip. Everything else in the kit is either what those gates run, or a tool that 
 
 **Escape hatches** — because a gate you can't bypass is a gate you'll rip out:
 - Plan: tell Claude "skip the plan review".
-- Commit: run `touch ~/.claude/.skip-commit-review`, **then** commit (two separate steps).
+- Commit: run the `touch ~/.claude/.skip-commit-review-<repo>-<crc>` printed in the deny message (one repo, one commit), **then** commit (two separate steps).
 
 ## The commands you type
 

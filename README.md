@@ -98,12 +98,13 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 
 ### Known edges (all verified by the test suite)
 
-- **Bypassing one trivial commit**: `touch ~/.claude/.skip-commit-review`, then commit. It must be a **separate step** — the hook inspects the command before it runs, so `touch … && git commit` is still denied. The marker is consumed on use.
+- **Bypassing one trivial commit**: the deny message prints a per-repo marker, `touch ~/.claude/.skip-commit-review-<repo>-<crc>`, then commit. It must be a **separate step**: the hook inspects the command before it runs, so `touch … && git commit` is still denied. The marker is consumed on use and only unlocks the repo it names, so a commit in another repo can no longer use it up.
+- **The review has to be logged from inside the repo**: the log records the working directory of the session that ran it, and a subagent inherits its parent session's. A session sitting outside the repo (your home folder, say) can review the diff and still be denied; open the session in the repo.
 - **Blind spot**: a commit buried inside a script (`bash deploy.sh`) isn't seen — the hook reads the command string, not the script.
 - `git commit-tree` is denied too (substring match). Rare, and the message tells you the way out.
 - Missing `jq` fails **closed** (denies with an explanation) rather than silently disabling itself.
 - Repo paths are matched both physically and logically, so a repo under a symlinked path (`/tmp`, `/var`, a symlinked projects dir) never gets stuck permanently denied.
-- **The repo being committed to is not assumed to be your shell's cwd.** `cd <repo> && git commit` and `git -C <repo> commit` are gated against *that* repo. Earlier versions resolved from cwd alone, which let an unreviewed commit through whenever the session happened to sit in some other, recently reviewed repo. A `-C` or `cd` appearing inside a commit *message* is not mistaken for the target, and anything unparseable falls back to cwd rather than inventing a pass.
+- **The repo being committed to is not assumed to be your shell's cwd.** `cd <repo> && git commit` and `git -C <repo> commit` are gated against *that* repo, and so are `(cd <repo> && git commit)`, `{ cd <repo>; git commit; }` and `sh -c "cd <repo> && git commit"`. Earlier versions resolved from cwd alone, which let an unreviewed commit through whenever the session happened to sit in some other, recently reviewed repo. A `-C` or `cd` appearing inside a commit *message* is not mistaken for the target, and anything unparseable falls back to cwd rather than inventing a pass.
 - **Repo paths containing spaces are handled**, quoted or not. Earlier versions matched the `-C` argument as "anything but a space", so `git -C "~/My Projects/app" commit` wasn't recognised as a commit at all and slipped through ungated.
 
 ```bash

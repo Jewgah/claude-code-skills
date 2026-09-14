@@ -31,6 +31,21 @@
 
 ## Changelog
 
+### 2026-09-14 - commit gate: per-repo bypass marker, subshell and group targets
+
+**Re-install the commit gate if you use it.** Two fixes, both proven by the test suite against the
+previous release (31 -> 39 assertions, 8 of the new ones fail on the old hook):
+
+- The bypass marker was one global file, `~/.claude/.skip-commit-review`: any commit in any repo, from
+  any session, consumed a marker created for another repo. It is now per repo,
+  `~/.claude/.skip-commit-review-<repo>-<crc>`, and the deny message prints the exact path. The old
+  global marker no longer unlocks anything.
+- `(cd <repo> && git commit)`, `{ cd <repo>; git commit; }` and `sh -c "cd <repo> && git commit"`
+  were gated against the session's cwd instead of `<repo>`: with a reviewed cwd, an unreviewed commit
+  into another repo went through. `cd` is now recognised after `(`, `{` and a double quote.
+- README: a review only counts when the session that ran it sits inside the repo (a subagent inherits
+  its parent session's working directory).
+
 ### 2026-08-17 - commit-gate security fix, 5 new skills, /loopit v2
 
 **The commit gate was passing unreviewed commits. Re-install if you use it.** It resolved the

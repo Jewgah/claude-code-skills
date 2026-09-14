@@ -45,9 +45,17 @@ d=$(run "git -C /tmp/x commit -m x" | decision);  [ "$d" = deny ]  && ok "git -C
 d=$(run "git -c user.name=z commit -m x" | decision); [ "$d" = deny ] && ok "git -c k=v commit matched" || bad "git -c" "$d"
 d=$(run "git commit --no-verify -m x" | decision);[ "$d" = deny ]  && ok "--no-verify is still gated" || bad "--no-verify" "$d"
 d=$(run "git commit -m x" /tmp | decision);       [ "$d" = allow ] && ok "outside a repo: nothing to gate" || bad "non-repo" "$d"
+# The bypass marker is PER REPO: ~/.claude/.skip-commit-review-<repo name>-<cksum of the root>.
+marker_for() { local r; r="$(git -C "$1" rev-parse --show-toplevel)"
+  echo "$FH/.claude/.skip-commit-review-$(basename "$r" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')-$(printf '%s' "$r" | cksum | cut -d' ' -f1)"; }
+MR="$(marker_for "$R")"
+r=$(run "git commit -m x" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+case "$r" in *"touch $MR"*) ok "deny message prints this repo's marker path";; *) bad "deny message marker" "$r";; esac
 touch "$FH/.claude/.skip-commit-review"
-d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "bypass marker allows" || bad "bypass" "$d"
-[ -f "$FH/.claude/.skip-commit-review" ] && bad "bypass consumed" "marker still there" || ok "bypass marker is one-shot"
+d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "the old global marker no longer unlocks anything" || bad "old global marker" "$d"
+touch "$MR"
+d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "this repo's marker allows" || bad "bypass" "$d"
+[ -f "$MR" ] && bad "bypass consumed" "marker still there" || ok "bypass marker is one-shot"
 
 # The repo committed to is not always .cwd. Resolving from .cwd alone mis-gated BOTH
 # directions; the dangerous half PASSED an unreviewed commit whenever the session sat
@@ -63,6 +71,14 @@ d=$(run "git -C $R2 commit -m x" | decision);     [ "$d" = deny ]  && ok "git -C
 d=$(run "cd $R && git commit -m x" "$R2" | decision); [ "$d" = allow ] && ok "reviewed repo reached via cd is allowed" || bad "cd to reviewed" "$d"
 d=$(run "git commit -m 'use git -C $R2 here'" | decision); [ "$d" = allow ] && ok "-C inside the message is not a target" || bad "-C in message" "$d"
 d=$(run "cd /nope/zzz && git commit -m x" | decision); [ "$d" = allow ] && ok "unresolvable target degrades to cwd" || bad "bad target" "$d"
+d=$(run "(cd $R2 && git commit -m x)" | decision); [ "$d" = deny ] && ok "(cd <other repo> && commit) in a subshell is gated on THAT repo" || bad "subshell cd target" "$d"
+d=$(run "{ cd $R2; git commit -m x; }" | decision); [ "$d" = deny ] && ok "{ cd <other repo>; commit; } group is gated on THAT repo" || bad "group cd target" "$d"
+d=$(run "sh -c \"cd $R2 && git commit -m x\"" | decision); [ "$d" = deny ] && ok "sh -c \"cd <other repo> && commit\" is gated on THAT repo" || bad "sh -c cd target" "$d"
+M2="$(marker_for "$R2")"; MR="$(marker_for "$R")"; touch "$MR"
+d=$(run "git -C $R2 commit -m x" | decision);     [ "$d" = deny ]  && ok "another repo's marker does not unlock this one" || bad "cross-repo marker" "$d"
+[ -f "$MR" ] && ok "another repo's marker is left untouched" || bad "cross-repo marker consumed" "gone"
+rm -f "$MR"; touch "$M2"
+d=$(run "git -C $R2 commit -m x" | decision);     [ "$d" = allow ] && ok "git -C <repo> uses THAT repo's marker" || bad "-C marker" "$d"
 # A repo path containing a SPACE must still be seen as a commit at all. Matching the -C
 # argument as [^ ]+ missed it entirely, leaving such commits completely ungated.
 SP="$T/my repo"; mkdir -p "$SP"
