@@ -12,7 +12,8 @@ dirty="$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 state=""
 if [ "$dirty" != "0" ]; then
   thr="$(git log -1 --date=format-local:'%Y-%m-%dT%H:%M:%S' --format=%ad 2>/dev/null)"; : "${thr:=0000}"
-  # same rule as the gate: an edit made after the review needs another one
+  # the gate's rule over EVERY pending file (the gate narrows it to the files being committed), so
+  # this may say not reviewed where a commit by explicit path would pass, never the reverse
   edit="$(cd "$root" && { git diff -z --name-only HEAD 2>/dev/null; git ls-files -z -o --exclude-standard; } \
     | python3 -c 'import os,sys,time; now=time.time()+5; m=[t for t in (os.lstat(p).st_mtime for p in sys.stdin.read().split("\0") if p and os.path.lexists(p)) if t <= now]; print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(max(m))) if m else "")')"
   [ -n "$edit" ] && [ "$edit" \> "$thr" ] && thr="$edit"

@@ -52,6 +52,20 @@ d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "a row 
 echo z > c.txt; touch -t 203001010000 c.txt; : > "$LOG"; review_now
 d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "a file dated in the future does not block a reviewed commit" || bad "future mtime" "$d"
 rm -f c.txt
+# Scoped to the files being committed: another session's newer file must not block a commit by
+# explicit path, while anything unclear still checks every pending file.
+echo m > mine.txt; touch -t 202601010000 mine.txt a.txt; : > "$LOG"; review_now; sleep 1; echo o > other.txt
+d=$(run 'git add mine.txt && git commit -m x' | decision);          [ "$d" = allow ] && ok "another session's newer file does not block a commit by explicit path" || bad "explicit path" "$d"
+d=$(run 'git add mine.txt other.txt && git commit -m x' | decision); [ "$d" = deny ]  && ok "a named file edited after the review still blocks" || bad "named newer" "$d"
+d=$(run 'git add -A && git commit -m x' | decision);                [ "$d" = deny ]  && ok "git add -A falls back to every pending file" || bad "add -A" "$d"
+d=$(run 'git commit -am x' | decision);                             [ "$d" = allow ] && ok "commit -a takes tracked changes, not the newer untracked file" || bad "commit -a" "$d"
+git add mine.txt
+d=$(run 'sh -c "git add other.txt" && git commit -m x' | decision);  [ "$d" = deny ]  && ok "a staging step the parser cannot see falls back to every pending file" || bad "sh -c staging" "$d"
+d=$(run 'git stash pop && git commit -m x' | decision);             [ "$d" = deny ]  && ok "another git subcommand falls back to every pending file" || bad "stash pop" "$d"
+git reset -q mine.txt
+sleep 1; echo v4 > a.txt
+d=$(run 'git commit -am x' | decision);                             [ "$d" = deny ]  && ok "commit -a sees a tracked file edited after the review" || bad "commit -a tracked" "$d"
+rm -f mine.txt other.txt
 : > "$LOG"
 d=$(run "git -C /tmp/x commit -m x" | decision);  [ "$d" = deny ]  && ok "git -C <dir> commit matched" || bad "git -C" "$d"
 d=$(run "git -c user.name=z commit -m x" | decision); [ "$d" = deny ] && ok "git -c k=v commit matched" || bad "git -c" "$d"

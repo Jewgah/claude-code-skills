@@ -77,15 +77,107 @@ rootl="${cwd%/}"; [ -n "$prefix" ] && rootl="${rootl%/${prefix%/}}"
 thr="$(git -C "$root" log -1 --date=format-local:'%Y-%m-%dT%H:%M:%S' --format=%ad 2>/dev/null)"
 : "${thr:=0000}"   # no commits yet: any review counts
 # A review only covers what existed when it ran: an edit made after it (a review fix, a late
-# tweak) needs another one. So the review must also be newer than the newest pending file.
-# Every pending file counts, not just the ones being committed: at PreToolUse time `git add x &&
-# git commit` has not staged x yet, so a staged-only check would wave an unreviewed edit through.
-# A second writer in the same repo can therefore force a re-review; one writer per repo is the rule.
+# tweak) needs another one. So the review must also be newer than the newest file THIS commit will
+# contain: what is staged, the paths a `git add <paths>` in the same command will stage, the paths
+# given to `git commit`, and every tracked change for `commit -a`. Scoped to the commit because
+# parallel sessions in one repo are normal ("commit by explicit path"): another session's unrelated
+# edit must not force a re-review. Anything it cannot read safely (add -A / . / -u / -p, a variable,
+# a parse error, nothing staged) falls back to every pending file, so a misparse can only over-deny.
 # A file dated in the future (clock skew, an unpacked archive) is ignored: no review could ever
 # be newer than it.
 # ponytail: mtime, not content; a deletion after the review is not seen. Content receipt if that bites.
-edit="$(cd "$root" && { git diff -z --name-only HEAD 2>/dev/null; git ls-files -z -o --exclude-standard; } \
-  | python3 -c 'import os,sys,time; now=time.time()+5; m=[t for t in (os.lstat(p).st_mtime for p in sys.stdin.read().split("\0") if p and os.path.lexists(p)) if t <= now]; print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(max(m))) if m else "")')"
+# The program is read into a variable first: a heredoc nested in $( ) mis-parses on macOS bash 3.2.
+IFS= read -r -d '' scope_py <<'PY'
+import os, shlex, subprocess, sys, time
+root, here, cmd = sys.argv[1:4]
+def git(at, *a):
+    out = subprocess.run(["git", "-C", at, *a], capture_output=True).stdout
+    return {os.fsdecode(p) for p in out.split(b"\0") if p}
+def pending(*spec):  # root-relative changed tracked + untracked files, optionally limited to spec
+    tail = ["--", *spec] if spec else []
+    return (git(here, "diff", "-z", "--name-only", "HEAD", *tail)
+            | git(here, "ls-files", "-z", "-o", "--exclude-standard", "--full-name", *tail))
+STOP = {";", "&&", "||", "|", "&", "(", ")"}
+VALUE = {"-m", "-F", "-C", "-c", "-t", "--author", "--date", "--template", "--fixup", "--squash",
+         "--trailer", "--message", "--file", "--reuse-message", "--reedit-message"}
+def dynamic(p):  # a variable, a substitution or a magic pathspec: not a path this parser can trust
+    return "$" in p or "`" in p or p.startswith(":")
+def scope():  # the commit's files, or None to mean "every pending file"
+    lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()")
+    lex.whitespace_split = True
+    words = list(lex)
+    # Only a chain of `cd` and plain git add/commit/status/diff/log/show is scoped: any other step
+    # (sh -c, a script, git mv / apply --cached / stash pop) may stage files this parser never sees.
+    # A `cd` is allowed only before the first git: paths are resolved from one directory.
+    first, saw_git = True, False
+    for w in words:
+        if first and (w not in ("cd", "git") or (w == "cd" and saw_git)):
+            return None
+        saw_git = saw_git or w == "git"
+        first = w in STOP
+    for n, w in enumerate(words):
+        if w == "git":
+            j = n + 1
+            while j + 1 < len(words) and words[j] in ("-C", "-c"):
+                j += 2
+            if j < len(words) and words[j] not in ("add", "commit", "status", "diff", "log", "show"):
+                return None
+    files, seen, i = git(root, "diff", "-z", "--cached", "--name-only"), False, 0
+    while i < len(words):
+        if words[i] != "git":
+            i += 1
+            continue
+        j = i + 1
+        while j + 1 < len(words) and words[j] in ("-C", "-c"):
+            j += 2
+        sub = words[j] if j < len(words) else ""
+        k, args = j + 1, []
+        while k < len(words) and words[k] not in STOP and words[k][:1] not in "<>":
+            args.append(words[k])
+            k += 1
+        if sub == "add":
+            seen = True
+            paths = [a for a in args if not a.startswith("-")]
+            if (not paths or any(a.startswith("-") and a not in ("-f", "--force", "-v", "--verbose", "--") for a in args)
+                    or any(p in (".", ":/", "*") or dynamic(p) for p in paths)):
+                return None
+            files |= pending(*paths)
+        elif sub == "commit":
+            seen = True
+            paths, skip, rest = [], False, False
+            for a in args:
+                if rest:
+                    paths.append(a)
+                elif skip:
+                    skip = False
+                elif a == "--":
+                    rest = True
+                elif a.startswith("-"):
+                    short = a[1:2] != "-"
+                    if a in ("-a", "--all") or (short and "a" in a[1:]):
+                        files |= git(here, "diff", "-z", "--name-only", "HEAD")
+                    if a in VALUE or (short and len(a) > 2 and a[-1] in "mFCct"):
+                        skip = True  # the next word is this option's value
+                else:
+                    paths.append(a)
+            if any(dynamic(p) for p in paths):
+                return None
+            if paths:
+                files |= pending(*paths)
+        i = k
+    return files if seen and files else None
+try:
+    names = scope()
+except Exception:
+    names = None
+if names is None:
+    names = pending()
+now = time.time() + 5
+m = [t for t in (os.lstat(os.path.join(root, p)).st_mtime for p in names
+                 if os.path.lexists(os.path.join(root, p))) if t <= now]
+print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(max(m))) if m else "")
+PY
+edit="$(python3 -c "$scope_py" "$root" "$cwd" "$cmd" 2>/dev/null)"
 # python3 missing or failing leaves edit empty: the gate falls back to "since the last commit" on
 # purpose (jq is the hard requirement; this half only tightens the rule).
 [ -n "$edit" ] && [ "$edit" \> "$thr" ] && thr="$edit"
