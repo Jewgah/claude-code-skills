@@ -63,6 +63,9 @@ git add mine.txt
 d=$(run 'sh -c "git add other.txt" && git commit -m x' | decision);  [ "$d" = deny ]  && ok "a staging step the parser cannot see falls back to every pending file" || bad "sh -c staging" "$d"
 d=$(run 'git stash pop && git commit -m x' | decision);             [ "$d" = deny ]  && ok "another git subcommand falls back to every pending file" || bad "stash pop" "$d"
 git reset -q mine.txt
+d=$(run 'git add mine.txt && git commit -m"fix the cat" other.txt' | decision); [ "$d" = deny ]  && ok "an attached -m value does not hide the path after it" || bad "attached -m" "$d"
+d=$(run 'git add mine.txt "" other.txt && git commit -m x' | decision);         [ "$d" = deny ]  && ok "an empty argument does not hide the paths after it" || bad "empty arg" "$d"
+d=$(run 'git add mine.txt && git commit -m x 2>&1' | decision);                 [ "$d" = allow ] && ok "a 2>&1 redirection keeps the commit scoped" || bad "2>&1" "$d"
 sleep 1; echo v4 > a.txt
 d=$(run 'git commit -am x' | decision);                             [ "$d" = deny ]  && ok "commit -a sees a tracked file edited after the review" || bad "commit -a tracked" "$d"
 rm -f mine.txt other.txt

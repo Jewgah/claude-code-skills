@@ -88,7 +88,7 @@ thr="$(git -C "$root" log -1 --date=format-local:'%Y-%m-%dT%H:%M:%S' --format=%a
 # ponytail: mtime, not content; a deletion after the review is not seen. Content receipt if that bites.
 # The program is read into a variable first: a heredoc nested in $( ) mis-parses on macOS bash 3.2.
 IFS= read -r -d '' scope_py <<'PY'
-import os, shlex, subprocess, sys, time
+import os, re, shlex, subprocess, sys, time
 root, here, cmd = sys.argv[1:4]
 def git(at, *a):
     out = subprocess.run(["git", "-C", at, *a], capture_output=True).stdout
@@ -100,10 +100,12 @@ def pending(*spec):  # root-relative changed tracked + untracked files, optional
 STOP = {";", "&&", "||", "|", "&", "(", ")"}
 VALUE = {"-m", "-F", "-C", "-c", "-t", "--author", "--date", "--template", "--fixup", "--squash",
          "--trailer", "--message", "--file", "--reuse-message", "--reedit-message"}
+VALUE_SHORT = set("mFCct")         # git commit short options that take a value
+BOOL_SHORT = set("aqvsnueio")      # and the plain flags that can share a cluster with them
 def dynamic(p):  # a variable, a substitution or a magic pathspec: not a path this parser can trust
-    return "$" in p or "`" in p or p.startswith(":")
+    return p == "" or "$" in p or "`" in p or p.startswith(":")
 def scope():  # the commit's files, or None to mean "every pending file"
-    lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()")
+    lex = shlex.shlex(re.sub(r"(?<![\w/])\d*[<>]&(\d+|-)(?![\w/])", " ", cmd), posix=True, punctuation_chars=";&|()")
     lex.whitespace_split = True
     words = list(lex)
     # Only a chain of `cd` and plain git add/commit/status/diff/log/show is scoped: any other step
@@ -132,7 +134,7 @@ def scope():  # the commit's files, or None to mean "every pending file"
             j += 2
         sub = words[j] if j < len(words) else ""
         k, args = j + 1, []
-        while k < len(words) and words[k] not in STOP and words[k][:1] not in "<>":
+        while k < len(words) and words[k] not in STOP and not words[k].startswith(("<", ">")):
             args.append(words[k])
             k += 1
         if sub == "add":
@@ -152,12 +154,23 @@ def scope():  # the commit's files, or None to mean "every pending file"
                     skip = False
                 elif a == "--":
                     rest = True
-                elif a.startswith("-"):
-                    short = a[1:2] != "-"
-                    if a in ("-a", "--all") or (short and "a" in a[1:]):
+                elif a.startswith("--"):
+                    if a == "--all":
                         files |= git(here, "diff", "-z", "--name-only", "HEAD")
-                    if a in VALUE or (short and len(a) > 2 and a[-1] in "mFCct"):
+                    elif a.split("=")[0] == "--pathspec-from-file":
+                        return None
+                    elif a in VALUE:
                         skip = True  # the next word is this option's value
+                elif a.startswith("-") and len(a) > 1:
+                    flags = a[1:]
+                    if flags[0] in VALUE_SHORT:
+                        skip = len(flags) == 1  # -m <msg> skips; -m"msg" / -Ffile carry it attached
+                    elif set(flags[:-1]) <= BOOL_SHORT and flags[-1] in BOOL_SHORT | VALUE_SHORT:
+                        if "a" in flags:
+                            files |= git(here, "diff", "-z", "--name-only", "HEAD")
+                        skip = flags[-1] in VALUE_SHORT  # -am <msg>
+                    else:
+                        return None  # an option this parser does not know
                 else:
                     paths.append(a)
             if any(dynamic(p) for p in paths):
