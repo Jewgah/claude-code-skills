@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # commit-review-gate: PreToolUse(Bash). Blocks `git commit` unless a code review
-# (review / review-deep / code-review / security-review / security-audit) ran since the last commit
-# in this repo. The model picks the depth; this just enforces that one happened.
+# (review / review-deep / code-review / security-review / security-audit) ran in this repo
+# after the last commit AND after the newest pending edit. The model picks the depth; this just enforces that one happened.
 # Reuses ~/.claude/skill-usage.log as the "was it reviewed?" signal - no new state.
 input="$(cat)"
 
@@ -81,9 +81,13 @@ thr="$(git -C "$root" log -1 --date=format-local:'%Y-%m-%dT%H:%M:%S' --format=%a
 # Every pending file counts, not just the ones being committed: at PreToolUse time `git add x &&
 # git commit` has not staged x yet, so a staged-only check would wave an unreviewed edit through.
 # A second writer in the same repo can therefore force a re-review; one writer per repo is the rule.
+# A file dated in the future (clock skew, an unpacked archive) is ignored: no review could ever
+# be newer than it.
 # ponytail: mtime, not content; a deletion after the review is not seen. Content receipt if that bites.
 edit="$(cd "$root" && { git diff -z --name-only HEAD 2>/dev/null; git ls-files -z -o --exclude-standard; } \
-  | python3 -c 'import os,sys,time; m=[os.lstat(p).st_mtime for p in sys.stdin.read().split("\0") if p and os.path.lexists(p)]; print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(max(m))) if m else "")')"
+  | python3 -c 'import os,sys,time; now=time.time()+5; m=[t for t in (os.lstat(p).st_mtime for p in sys.stdin.read().split("\0") if p and os.path.lexists(p)) if t <= now]; print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(max(m))) if m else "")')"
+# python3 missing or failing leaves edit empty: the gate falls back to "since the last commit" on
+# purpose (jq is the hard requirement; this half only tightens the rule).
 [ -n "$edit" ] && [ "$edit" \> "$thr" ] && thr="$edit"
 
 log="${CLAUDE_SKILL_LOG:-$HOME/.claude/skill-usage.log}"
@@ -97,6 +101,6 @@ if awk -F'\t' -v root="$root" -v rootl="$rootl" -v thr="$thr" '
   exit 0
 fi
 
-reason="Review-before-commit gate: this repo has changes not yet reviewed (no review since the last commit, or files were edited after it). Judge the blast radius, then run a review: small / localized / low-risk -> invoke the \"review\" skill; multi-file / shared interface / security / data / migration / deploy-touching -> invoke \"review-deep\". Address the findings, then re-run the commit and it will pass. Trivial change you want to skip: run \`touch $marker\` as its own step, then commit (the marker is for this repo only). Note: the review counts only if it was logged from a session whose working directory is inside this repo; a subagent inherits its parent session's."
+reason="Review-before-commit gate: this repo has changes not yet reviewed (no review since the last commit, or a file was touched after the review, even without a real change, e.g. a stash pop or a tool rewriting it). Judge the blast radius, then run a review: small / localized / low-risk -> invoke the \"review\" skill; multi-file / shared interface / security / data / migration / deploy-touching -> invoke \"review-deep\". Address the findings, then re-run the commit and it will pass. Trivial change you want to skip: run \`touch $marker\` as its own step, then commit (the marker is for this repo only). Note: the review counts only if it was logged from a session whose working directory is inside this repo; a subagent inherits its parent session's."
 jq -n --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
 exit 0

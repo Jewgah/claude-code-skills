@@ -49,6 +49,9 @@ rm -f b.txt; review_now
 d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "a fresh review after the last edit passes" || bad "fresh review" "$d"
 : > "$LOG"; printf '%s\treview\tsomething-else\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$R" >> "$LOG"
 d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "a row not written by log-skill.sh does not count" || bad "foreign row" "$d"
+echo z > c.txt; touch -t 203001010000 c.txt; : > "$LOG"; review_now
+d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "a file dated in the future does not block a reviewed commit" || bad "future mtime" "$d"
+rm -f c.txt
 : > "$LOG"
 d=$(run "git -C /tmp/x commit -m x" | decision);  [ "$d" = deny ]  && ok "git -C <dir> commit matched" || bad "git -C" "$d"
 d=$(run "git -c user.name=z commit -m x" | decision); [ "$d" = deny ] && ok "git -c k=v commit matched" || bad "git -c" "$d"
