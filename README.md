@@ -7,7 +7,7 @@ The core idea: the two quality steps everyone skips under pressure — reviewing
 | Gate | Hook | What happens |
 |---|---|---|
 | **Plan review** | `PreToolUse(ExitPlanMode)` | Claude can't show you a plan until it has run `/review-plan` on it and folded the findings in. |
-| **Commit review** | `PreToolUse(Bash)` | `git commit` is denied unless `/review` (or `/review-deep`, `/code-review`, `/security-review`, `/security-audit`) ran in that repo since the last commit. |
+| **Commit review** | `PreToolUse(Bash)` | `git commit` is denied unless `/review` (or `/review-deep`, `/code-review`, `/security-review`, `/security-audit`) ran in that repo since the last commit and since the last edit. |
 
 Everything else here is either what those gates run, or a tool that reuses their data.
 
@@ -94,7 +94,7 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 
 **Plan gate** — stateless. The hook denies `ExitPlanMode` and tells Claude to run `/review-plan`, then re-submit the plan ending with `<!-- plan-reviewed -->`. That marker is the only thing that lets a plan through, so there's no flag file to go stale and no loop. Tell Claude to skip the review and it just appends the marker.
 
-**Commit gate** — the `log-skill.sh` hooks append one line per skill use (`timestamp ⇥ skill ⇥ typed|nl ⇥ cwd`) to `~/.claude/skill-usage.log`. The gate asks that log one question: *did a review run in this repo since the last commit?* If not, the commit is denied with instructions on which depth to use. The model picks `review` vs `review-deep` by blast radius — the hook only enforces that **something** ran.
+**Commit gate**: the `log-skill.sh` hooks append one line per skill use (`timestamp ⇥ skill ⇥ typed|nl ⇥ cwd`) to `~/.claude/skill-usage.log`. The gate asks that log one question: *did a review run in this repo after the last commit and after the newest edit?* If not, the commit is denied with instructions on which depth to use. A fix made after the review therefore needs another review, and only lines written by `log-skill.sh` (`typed` or `nl`) count. The model picks `review` vs `review-deep` by blast radius; the hook only enforces that **something** ran.
 
 ### Known edges (all verified by the test suite)
 
@@ -118,7 +118,7 @@ Temp dirs and a fake `HOME` — it touches nothing of yours.
 
 - `jq` — the commit gate and the installer
 - `node` — the plan gate
-- `python3` — `/sessions` only
+- `python3`: `/sessions`, and the commit gate and status line (to date the newest edit; without it they fall back to "since the last commit")
 - `npx playwright` - `/frontend-verify` only (and `/battle-test`'s browser pass, which delegates to it)
 - `/review-deep`, `/loopit` and `/loopable` spawn subagents, so they cost real tokens. Use `/review` for everyday work and keep the deep ones for changes that scare you.
 

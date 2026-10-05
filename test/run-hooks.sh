@@ -41,6 +41,15 @@ d=$(run "git commit -m x" "$R/sub" | decision);   [ "$d" = allow ] && ok "subdir
 d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "a review in a DIFFERENT repo does not count" || bad "other repo" "$d"
 : > "$LOG"; printf '%s\treview\ttyped\t%s\n' "2020-01-01T00:00:00" "$R" >> "$LOG"
 d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "a review older than the last commit does not count" || bad "stale review" "$d"
+: > "$LOG"; review_now; sleep 1; echo v3 > a.txt
+d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "an edit made after the review needs another review" || bad "edit after review" "$d"
+sleep 1; echo new > b.txt; review_now; sleep 1; echo newer > b.txt
+d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "an untracked file edited after the review counts too" || bad "untracked edit" "$d"
+rm -f b.txt; review_now
+d=$(run "git commit -m x" | decision);            [ "$d" = allow ] && ok "a fresh review after the last edit passes" || bad "fresh review" "$d"
+: > "$LOG"; printf '%s\treview\tsomething-else\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$R" >> "$LOG"
+d=$(run "git commit -m x" | decision);            [ "$d" = deny ]  && ok "a row not written by log-skill.sh does not count" || bad "foreign row" "$d"
+: > "$LOG"
 d=$(run "git -C /tmp/x commit -m x" | decision);  [ "$d" = deny ]  && ok "git -C <dir> commit matched" || bad "git -C" "$d"
 d=$(run "git -c user.name=z commit -m x" | decision); [ "$d" = deny ] && ok "git -c k=v commit matched" || bad "git -c" "$d"
 d=$(run "git commit --no-verify -m x" | decision);[ "$d" = deny ]  && ok "--no-verify is still gated" || bad "--no-verify" "$d"

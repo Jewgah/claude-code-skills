@@ -16,7 +16,7 @@
 - [x] `/explain-dev` + `/vulgarize` - client-facing change notes (structured template / casual text), EN + FR
 - [x] `/sessions` - recent sessions with their `claude --resume` commands
 - [x] `/skill-stats` - usage leaderboard from the durable log
-- [x] **Hooks** - the plan-review gate, the commit-review gate, the usage logger they read, and a review-state status line
+- [x] **Hooks** - the plan-review gate, the commit-review gate (a review must be newer than the last commit and the last edit), the usage logger they read, and a review-state status line
 - [x] `install.sh` - one-shot installer (idempotent, skips existing, **merges hook wiring into settings.json** with a backup)
 - [x] `test/run-hooks.sh` - 31 assertions proving the hooks behave as documented (fake HOME, temp repos); `HOOKS=<dir>` targets an installed copy
 - [x] `CHEATSHEET.md` (plain-words guide) + `ONBOARDING-PROMPT.md` (paste-in setup prompt)

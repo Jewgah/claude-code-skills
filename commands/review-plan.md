@@ -5,12 +5,11 @@ argument-hint: "[optional: the plan or approach to review]"
 
 Locate the plan to review, in this priority order, and state which source you used in one line before starting:
 1. If `$ARGUMENTS` is non-empty, review that text as the plan.
-2. Else, the active plan-mode plan — read the most recently modified file in `~/.claude/plans/` (`ls -t ~/.claude/plans/*.md | head -1`).
+2. Else, the plan file this conversation wrote or was handed (plan mode, or a path a caller named). Never fall back to the newest file in `~/.claude/plans/`: parallel sessions write there too, so it can be another session's plan. If no plan is identifiable, ask for it.
 3. Else, the approach described in my previous message.
 
-**State the plan file's path AND its first heading before reviewing** — parallel sessions
-write plans too, and the `ls -t` fallback can grab another session's file; naming both makes
-a mismatch visible immediately.
+**State the plan file's path AND its first heading before reviewing**, so a wrong file is
+visible immediately.
 
 **Proportionality**: depth scales with blast radius. A one-line fix gets a one-paragraph
 review; do not manufacture findings to fill the checklist — an honest "nothing found" on a

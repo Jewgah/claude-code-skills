@@ -175,8 +175,8 @@ and named in the End report.
 ## Concurrent loops (different repos only)
 
 Several /loopit sessions in parallel are fine when each targets a DIFFERENT repo and tasks
-file: the tasks file, the plans, the client-doc folders and the commit-review gate are all
-per-repo, so they don't interact. Never point two loops at the same tasks file (the
+file: the tasks file, the plans (named after the repo AND the task, since task ids repeat across
+repos), the client-doc folders and the commit-review gate are all per-repo, so they don't interact. Never point two loops at the same tasks file (the
 checkbox flips and HEAD baselines would race); there is deliberately no lock file - one
 loop per repo is the rule. If your setup gates pushes behind a consent step, check that
 its state is per-repo rather than global before running loops in parallel: a global marker
@@ -201,7 +201,7 @@ INSIDE the per-task subagent** (see Execution model above); Step 10 is the orche
   most expensive class of mistake in this loop: it ships, it confuses the user with two places to
   enter the same thing, and it then has to be unwound.
   A task that adds nothing (a fix, a rename, a copy change) skips this and says so in one line.
-- Write a short plan to `~/.claude/plans/loopit-{TASK-ID}.md`: problem, root cause, files to touch,
+- Write a short plan to `~/.claude/plans/loopit-{repo-basename}-{TASK-ID}.md`: problem, root cause, files to touch,
   the minimal change, how to verify. Keep it lazy - smallest change that satisfies the acceptance.
 
 Note on where the OTHER measuring discipline lives: "prove your riskiest assumption with a cheap
@@ -216,7 +216,7 @@ because a review can only critique the plan it is given.
   context is tiny (the plan file plus spot checks), so the premium rate costs pennies here.
 - Dispatch a reviewer agent: Agent tool, `subagent_type: general-purpose`, with `model` set to
   your strongest tier, prompt: "cd {repo}. Invoke the /review-plan skill with the argument:
-  review the plan file at ~/.claude/plans/loopit-{TASK-ID}.md. Return the full verdict
+  review the plan file at ~/.claude/plans/loopit-{repo-basename}-{TASK-ID}.md. Return the full verdict
   (Go / Adjust / Rethink) and every finding, verbatim."
 - **Quota fallback**: if that dispatch errors or returns null (the Agent tool's terminal-failure
   result, typically a usage/rate limit), re-dispatch the identical prompt one tier down. Never
