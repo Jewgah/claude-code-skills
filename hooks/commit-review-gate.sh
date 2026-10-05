@@ -78,6 +78,9 @@ thr="$(git -C "$root" log -1 --date=format-local:'%Y-%m-%dT%H:%M:%S' --format=%a
 : "${thr:=0000}"   # no commits yet: any review counts
 # A review only covers what existed when it ran: an edit made after it (a review fix, a late
 # tweak) needs another one. So the review must also be newer than the newest pending file.
+# Every pending file counts, not just the ones being committed: at PreToolUse time `git add x &&
+# git commit` has not staged x yet, so a staged-only check would wave an unreviewed edit through.
+# A second writer in the same repo can therefore force a re-review; one writer per repo is the rule.
 # ponytail: mtime, not content; a deletion after the review is not seen. Content receipt if that bites.
 edit="$(cd "$root" && { git diff -z --name-only HEAD 2>/dev/null; git ls-files -z -o --exclude-standard; } \
   | python3 -c 'import os,sys,time; m=[os.lstat(p).st_mtime for p in sys.stdin.read().split("\0") if p and os.path.lexists(p)]; print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(max(m))) if m else "")')"
