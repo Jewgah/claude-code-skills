@@ -21,6 +21,7 @@ Everything else here is either what those gates run, or a tool that reuses their
 | `/battle-test` | Skill | Runs the checks that *can* actually run for the current change, then reports what ran, a score out of 100, and the checks that still need a human. Buckets every check as AUTO / BOOTABLE / MANUAL and refuses anything that could touch real data or a real user. Runs the repo's own tooling only, never a new framework. It reports; it never commits, pushes or deploys. |
 | `/frontend-verify` | Skill | Verifies frontend changes end to end instead of you clicking through pages. Reads console errors and failed network requests first and writes full page state to disk, so it only pulls a snapshot or screenshot into context when a route actually fails. Next.js, React, Vite, any local dev server. |
 | `/security-audit` | Skill | Scans for the usual suspects: hardcoded secrets, missing auth checks, injection, insecure sessions, dependency and config exposure. Counts as a review for the commit gate. |
+| `/thermo-nuclear-code-quality-review` | Skill | A deliberately harsh maintainability review: looks for the restructuring that makes whole branches or layers disappear, flags files pushed past 1,000 lines and one-off `if`s bolted onto unrelated code. Hunts structure, not bugs, so it complements `/review-deep` rather than replacing it, and it does not count for the commit gate. Report-only. Adapted from Cursor's skill (MIT). |
 | `/loopit` | Skill | Autonomous delivery runner. You write a task checklist; it takes each task through plan → `/review-plan` → implement → verify → review → fix every finding → `/battle-test` → commit → push → client note → tick the box. **Each task runs in its own subagent**, so task #8 doesn't pay to re-read everything tasks #1-7 left in context. Nothing is hardcoded to a project - branch rule, verify commands, commit style are all derived from the target repo. |
 | `/loopable` | Skill | Finds recurring work worth automating, then ships the top candidate end-to-end. Mines git history, manual scripts, Claude usage and docs for chores with a rhythm; scores them on frequency/determinism/verifiability/blast-radius; maps each to one mechanism (`/loop`, `/schedule`, hook, cron, workflow, or plain script). Then runs the full delivery flow on the winner. |
 | `/init-agents` | Skill | Scaffolds a tailored **agent team** into the current repo: detects the stack (JS/TS, PHP, Python, Go, Rust — monorepos too), then writes specialized subagents (`.claude/agents/`), pipeline commands like `/feature` and `/fix`, quality hooks, and a documented `CLAUDE.md` section. `minimal`/`full` tiers, project or user scope, clean `uninstall`. |
@@ -57,6 +58,7 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 /review                     # all uncommitted changes  (also: staged | unstaged | last-commit)
 /review-deep                # the deep multi-agent one (also: staged | last-commit | branch)
 /review-plan                # the active plan-mode plan, or the approach in your last message
+/thermo-nuclear-code-quality-review   # harsh structural review (same scopes as /review-deep)
 
 /loopit                     # run ./loop-tasks.md to completion, one task at a time
 /loopit FX-02               # run a single task from the queue
@@ -125,3 +127,5 @@ Temp dirs and a fake `HOME` — it touches nothing of yours.
 ## License
 
 [MIT](LICENSE)
+
+`skills/thermo-nuclear-code-quality-review` is adapted from [cursor/plugins](https://github.com/cursor/plugins) and keeps Cursor's own MIT notice in its folder.

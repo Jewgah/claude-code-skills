@@ -10,6 +10,7 @@
 - [x] `/battle-test` - runnable-checks gate: AUTO/BOOTABLE/MANUAL triage, blast-radius preflight, score out of 100 + the human-only list
 - [x] `/frontend-verify` - end-to-end frontend verification (console + network first, snapshots only on failure); Playwright-backed
 - [x] `/security-audit` - OWASP-style scan (secrets, auth, injection, config); counts as a review for the commit gate
+- [x] `/thermo-nuclear-code-quality-review` - harsh structural/maintainability review, adapted from Cursor's (MIT, pinned dbf4981)
 - [x] `/choices` - turn blocking product decisions into a message a non-technical stakeholder can answer
 - [x] `/commit` - commit staged work with a why-focused message, refreshing `CLAUDE.md` when the change invalidates it
 - [x] `/loopit` - autonomous task-queue runner, one subagent per task (plan → review-plan → build → verify → review → battle-test → commit → push → client note)
@@ -30,6 +31,17 @@
 - [ ] Screenshots / sample review output in README
 
 ## Changelog
+
+### 2026-10-14 - /thermo-nuclear-code-quality-review, two new /review-deep checks
+
+- New `/thermo-nuclear-code-quality-review`, adapted from Cursor's `cursor-team-kit` skill pinned at
+  `dbf4981` (MIT, Cursor's licence kept in the skill folder). Three adaptations sit at the top and win
+  over the original text: it takes the same scopes as `/review-deep` (so it works on uncommitted work,
+  not only a branch), it suggests a new abstraction only when that deletes more than it adds, and it
+  reports without editing.
+- `/review-deep` Agent 3 gained two checks: (8) feature-gate leaks, code meant to stay behind a flag,
+  plan, role or internal-only guard that becomes reachable without it; (9) dev-setup breakage, changes
+  to env vars, where secrets are read from, ports, or a new manual step.
 
 ### 2026-09-14 - commit gate: per-repo bypass marker, subshell and group targets
 
