@@ -79,7 +79,7 @@ assume. Read its `CLAUDE.md` + recalled memories, inspect git, and detect toolin
 - **Commit convention**: match the repo's existing `git log` style (Conventional Commits, a
   `prefix:` style, etc.). Default to Conventional Commits if the log is mixed/empty.
 - **Client-doc convention**: how this repo produces the human-facing change note - `/explain-dev`
-  (call it as `/explain-dev en` for English; no argument gives French), or none. **Language is
+  (no argument gives English; call it as `/explain-dev fr` for French), or none. **Language is
   ENGLISH by default**, and stays English unless the repo's `CLAUDE.md`
   explicitly says otherwise. Output goes to ONE per-product folder under `~/Downloads/{projectname}/`.
 - **Post-push build/deploy**: does reaching users need a separate step after push (a mobile build,

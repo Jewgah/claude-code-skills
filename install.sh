@@ -68,7 +68,7 @@ add PreToolUse       "Bash"         "bash \"$H/commit-review-gate.sh\""      10 
 if [ "$(jq -r '.statusLine // empty' "$S")" = "" ]; then
   tmp="$(mktemp)"
   jq --arg c "bash \"$H/statusline.sh\"" '.statusLine = {type:"command", command:$c}' "$S" > "$tmp" && mv "$tmp" "$S"
-  installed+=("statusLine (branch | dirty | review state)")
+  installed+=("statusLine (project | branch | N uncommitted | review state | not pushed)")
 else
   skipped+=("statusLine (you already have one — see hooks/statusline.sh to merge by hand)")
 fi

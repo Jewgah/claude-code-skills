@@ -132,7 +132,7 @@ d=$(printf 'not json' | node "$HOOKS/plan-review-gate.mjs" | decision)
 echo "== statusline =="
 : > "$LOG"
 s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
-case "$s" in *UNREVIEWED*) ok "shows UNREVIEWED: $s";; *) bad "statusline unreviewed" "$s";; esac
+case "$s" in *"| not reviewed"*) ok "shows not reviewed: $s";; *) bad "statusline unreviewed" "$s";; esac
 review_now review-deep
 s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
 case "$s" in *"| reviewed"*) ok "shows reviewed: $s";; *) bad "statusline reviewed" "$s";; esac

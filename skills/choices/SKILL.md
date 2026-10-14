@@ -7,7 +7,7 @@ description: Summarize the open decisions/choices from the current conversation 
 
 Generate a concise, copy-paste WhatsApp message (English) that lists the open
 decisions the team needs to make, based on the current conversation. This is the
-sibling of `/explain-dev` (which announces *finished* work in French): `/choices`
+sibling of `/explain-dev` (which announces *finished* work): `/choices`
 surfaces *pending* decisions in English so the team can pick.
 
 ## The audience is ALWAYS the client

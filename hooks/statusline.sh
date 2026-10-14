@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# statusLine: branch | N dirty | review state.
-# The review state mirrors commit-review-gate's logic, so you SEE the gate before you hit it:
-#   ok reviewed   = a review ran in this repo after the last commit AND after the last edit -> commit will pass
-#   NOT reviewed  = the gate will block your next commit
+# statusLine: project | branch | N uncommitted | review state | push state.
+# Review state mirrors commit-review-gate's logic, so you SEE the gate before you hit it:
+#   reviewed     = /review or /review-deep ran in this repo after the last commit AND the last edit -> commit will pass
+#   not reviewed = the gate will block your next commit
 root="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$root" ]; then echo "no repo"; exit 0; fi
 
-branch="$(git branch --show-current 2>/dev/null || echo 'detached')"
+project="$(basename "$root")"
+branch="$(git branch --show-current 2>/dev/null)"; : "${branch:=detached}"   # empty, exit 0, on a detached HEAD
 dirty="$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 
 state=""
@@ -18,7 +19,7 @@ if [ "$dirty" != "0" ]; then
     | python3 -c 'import os,sys,time; now=time.time()+5; m=[t for t in (os.lstat(p).st_mtime for p in sys.stdin.read().split("\0") if p and os.path.lexists(p)) if t <= now]; print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(max(m))) if m else "")')"
   [ -n "$edit" ] && [ "$edit" \> "$thr" ] && thr="$edit"
   log="${CLAUDE_SKILL_LOG:-$HOME/.claude/skill-usage.log}"; [ -f "$log" ] || log=/dev/null
-  # git gives the physical root, the log records the logical cwd — match either (see the gate).
+  # git gives the physical root, the log records the logical cwd: match either (see the gate).
   prefix="$(git rev-parse --show-prefix 2>/dev/null)"
   rootl="${PWD%/}"; [ -n "$prefix" ] && rootl="${rootl%/${prefix%/}}"
   if awk -F'\t' -v root="$root" -v rootl="$rootl" -v thr="$thr" '
@@ -28,8 +29,16 @@ if [ "$dirty" != "0" ]; then
       && $1 >= thr { f=1; exit } END { exit(f?0:1) }' "$log"; then
     state=" | reviewed"
   else
-    state=" | UNREVIEWED"
+    state=" | not reviewed"
   fi
 fi
 
-echo "${branch} | ${dirty} dirty${state}"
+# ponytail: called "pushed", not "deployed": push != deploy for repos with no CI
+# (e.g. a manual rsync deploy), so "deployed" would just be a new untrue label.
+push=""
+if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
+  ahead="$(git rev-list --count '@{u}..HEAD' 2>/dev/null)"
+  [ "${ahead:-0}" != "0" ] && push=" | not pushed"
+fi
+
+echo "${project} | ${branch} | ${dirty} uncommitted${state}${push}"

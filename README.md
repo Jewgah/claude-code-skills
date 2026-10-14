@@ -32,7 +32,7 @@ Everything else here is either what those gates run, or a tool that reuses their
 | `/sessions` | Skill | Lists your recent Claude Code sessions with the exact `claude --resume <id>` command for each. For after a reboot, or "where was that thing I did Tuesday?". |
 | `/skill-stats` | Command | Leaderboard of which of these you actually use, from a durable usage log that survives transcript cleanup. |
 
-Plus four hooks in `hooks/`: the two gates, the usage logger they read, and a status line showing `branch | N dirty | reviewed / UNREVIEWED` so you see the gate's verdict before it blocks you.
+Plus four hooks in `hooks/`: the two gates, the usage logger they read, and a status line showing `project | branch | N uncommitted | reviewed / not reviewed | not pushed` so you see the gate's verdict before it blocks you.
 
 ### Why multi-agent review?
 
@@ -71,7 +71,7 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 /loopable scan              # diagnose-only: rank candidates, build nothing
 
 /init-agents                # scaffold an agent team into this repo (also: full | uninstall)
-/explain-dev en             # client update for what you just shipped (or: fr)
+/explain-dev                # client update for what you just shipped (or: fr)
 /vulgarize en               # the casual version (or: fr)
 /choices                    # turn blocking decisions into a message a human can answer
 /commit                     # commit staged work with a why-focused message

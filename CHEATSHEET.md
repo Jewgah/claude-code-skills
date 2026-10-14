@@ -61,7 +61,7 @@ catch generic mistakes; with it they catch *your* mistakes.
 
 - `/review-deep`, `/loopit` and `/loopable` spawn extra agents, so they cost noticeably more tokens
   than `/review`. Use the cheap one by default.
-- The status line shows `branch | N dirty | reviewed / UNREVIEWED` so you can see the commit gate's
+- The status line shows `project | branch | N uncommitted | reviewed / not reviewed | not pushed` so you can see the commit gate's
   verdict before you hit it.
 - Everything above is plain markdown in `~/.claude/skills/` and `~/.claude/commands/`. Open any of
   them and edit the wording — they're instructions, not code.
