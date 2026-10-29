@@ -19,7 +19,7 @@
 - [x] `/skill-stats` - usage leaderboard from the durable log
 - [x] **Hooks** - the plan-review gate, the commit-review gate (a review must be newer than the last commit and the last edit), the usage logger they read, and a review-state status line
 - [x] `install.sh` - one-shot installer (idempotent, skips existing, **merges hook wiring into settings.json** with a backup)
-- [x] `test/run-hooks.sh` - 31 assertions proving the hooks behave as documented (fake HOME, temp repos); `HOOKS=<dir>` targets an installed copy
+- [x] `test/run-hooks.sh` - 59 assertions proving the hooks behave as documented (fake HOME, temp repos); `HOOKS=<dir>` targets an installed copy
 - [x] `CHEATSHEET.md` (plain-words guide) + `ONBOARDING-PROMPT.md` (paste-in setup prompt)
 - [x] README with install + usage instructions
 - [x] MIT license
@@ -31,6 +31,15 @@
 - [ ] Screenshots / sample review output in README
 
 ## Changelog
+
+### 2026-10-30 - status line: branches that were never pushed
+
+- The status line said nothing about a branch with no upstream, so a branch that was never pushed
+  looked pushed. With no upstream it now shows `not pushed` whenever HEAD holds a commit that no
+  remote ref contains: never pushed, or pushed without `-u` and then committed again. A branch
+  pushed without `-u` and unchanged since stays clean, and so does a repo with no commits yet.
+  Five new assertions in `test/run-hooks.sh` (54 -> 59); the two for the new logic fail on the
+  previous check.
 
 ### 2026-10-14 - /thermo-nuclear-code-quality-review, two new /review-deep checks
 

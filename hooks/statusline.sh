@@ -39,6 +39,9 @@ push=""
 if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
   ahead="$(git rev-list --count '@{u}..HEAD' 2>/dev/null)"
   [ "${ahead:-0}" != "0" ] && push=" | not pushed"
+elif [ "$branch" != "detached" ] && [ -n "$(git remote 2>/dev/null)" ] \
+  && [ "$(git rev-list --count HEAD --not --remotes 2>/dev/null || echo 0)" != "0" ]; then
+  push=" | not pushed"   # no upstream: HEAD has commits no remote ref contains (never pushed, or pushed without -u then committed)
 fi
 
 echo "${project} | ${branch} | ${dirty} uncommitted${state}${push}"

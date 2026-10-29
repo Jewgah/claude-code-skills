@@ -136,6 +136,21 @@ case "$s" in *"| not reviewed"*) ok "shows not reviewed: $s";; *) bad "statuslin
 review_now review-deep
 s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
 case "$s" in *"| reviewed"*) ok "shows reviewed: $s";; *) bad "statusline reviewed" "$s";; esac
+case "$s" in *"not pushed"*) bad "statusline no remote" "$s";; *) ok "no remote, no push state: $s";; esac
+git init -q --bare "$T/origin.git"; git -C "$R" remote add origin "$T/origin.git"
+s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
+case "$s" in *"| not pushed") ok "never-pushed branch shows not pushed: $s";; *) bad "statusline never pushed" "$s";; esac
+git -C "$R" push -q origin HEAD 2>/dev/null   # pushed, but without -u: no upstream is set
+s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
+case "$s" in *"not pushed"*) bad "statusline pushed without -u" "$s";; *) ok "pushed without -u is not 'not pushed': $s";; esac
+git -C "$R" commit -q --allow-empty -m after-push
+s=$(cd "$R" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
+case "$s" in *"| not pushed") ok "committed after a push without -u shows not pushed: $s";; *) bad "statusline commit after push without -u" "$s";; esac
+git -C "$R" reset -q --soft HEAD~1
+git -C "$R" remote remove origin
+E="$T/empty"; git init -q "$E"; git -C "$E" remote add origin "$T/origin.git"
+s=$(cd "$E" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
+case "$s" in *"not pushed"*) bad "statusline no commits yet" "$s";; *) ok "no commits yet, nothing to push: $s";; esac
 s=$(cd /tmp && bash "$HOOKS/statusline.sh"); [ "$s" = "no repo" ] && ok "outside a repo: $s" || bad "statusline no-repo" "$s"
 
 echo "== usage logger =="
