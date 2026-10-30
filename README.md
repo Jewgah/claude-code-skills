@@ -22,7 +22,7 @@ Everything else here is either what those gates run, or a tool that reuses their
 | `/frontend-verify` | Skill | Verifies frontend changes end to end instead of you clicking through pages. Reads console errors and failed network requests first and writes full page state to disk, so it only pulls a snapshot or screenshot into context when a route actually fails. Next.js, React, Vite, any local dev server. |
 | `/security-audit` | Skill | Scans for the usual suspects: hardcoded secrets, missing auth checks, injection, insecure sessions, dependency and config exposure. Counts as a review for the commit gate. |
 | `/thermo-nuclear-code-quality-review` | Skill | A deliberately harsh maintainability review: looks for the restructuring that makes whole branches or layers disappear, flags files pushed past 1,000 lines and one-off `if`s bolted onto unrelated code. Hunts structure, not bugs, so it complements `/review-deep` rather than replacing it, and it does not count for the commit gate. Report-only. Adapted from Cursor's skill (MIT). |
-| `/loopit` | Skill | Autonomous delivery runner. You write a task checklist; it takes each task through plan → `/review-plan` → implement → verify → review → fix every finding → `/battle-test` → commit → push → client note → tick the box. **Each task runs in its own subagent**, so task #8 doesn't pay to re-read everything tasks #1-7 left in context. Nothing is hardcoded to a project - branch rule, verify commands, commit style are all derived from the target repo. |
+| `/loopit` | Skill | Autonomous delivery runner. You write a task checklist; a separate agent first writes hidden acceptance checks for each task, then a builder takes it through plan → `/review-plan` → implement → verify → review → fix every finding → `/battle-test`, and a script runs the checks: **exit codes decide whether it ships**, never the builder's own opinion. Then commit → push → client note → tick the box. **Each task runs in its own subagent**, so task #8 doesn't pay to re-read everything tasks #1-7 left in context. Nothing is hardcoded to a project - branch rule, verify commands, commit style are all derived from the target repo. |
 | `/loopable` | Skill | Finds recurring work worth automating, then ships the top candidate end-to-end. Mines git history, manual scripts, Claude usage and docs for chores with a rhythm; scores them on frequency/determinism/verifiability/blast-radius; maps each to one mechanism (`/loop`, `/schedule`, hook, cron, workflow, or plain script). Then runs the full delivery flow on the winner. |
 | `/init-agents` | Skill | Scaffolds a tailored **agent team** into the current repo: detects the stack (JS/TS, PHP, Python, Go, Rust — monorepos too), then writes specialized subagents (`.claude/agents/`), pipeline commands like `/feature` and `/fix`, quality hooks, and a documented `CLAUDE.md` section. `minimal`/`full` tiers, project or user scope, clean `uninstall`. |
 | `/explain-dev` | Command | Turns what you shipped into a structured, jargon-free client update (numbered points + a "how to test" section), ready to paste into WhatsApp/Slack. English or French. |
@@ -62,6 +62,8 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 
 /loopit                     # run ./loop-tasks.md to completion, one task at a time
 /loopit FX-02               # run a single task from the queue
+/loopit plan:<path>         # run one approved plan file through the same cycle
+/loopit stats               # first-pass rate over the last 30 days
 
 /battle-test                # run what can be run, score it, list what needs a human
 /frontend-verify            # drive the UI and report console + network failures
@@ -89,6 +91,8 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 ```
 
 `- [ ]` pending, `[x]` done, `[~]` blocked. Then run `/loopit`. Per task it plans, reviews the plan, implements, runs the repo's own verify commands, reviews the diff, fixes **every** finding, re-verifies, commits by explicit path, pushes per the repo's branch rule, writes a plain-language change note, and moves on.
+
+The builder never grades its own work. Before it starts, a check-writer agent turns the task into 1 to 3 executable checks (run through the repo's own test runner), proves each one fails today for the right reason, and hands the builder only their intents. When the builder says it is ready, `run-checks.sh` runs the checks and refuses any that changed since. A builder that keeps failing hands off to a fresh context or, after a second failed round, forks into two worktrees and the first one to pass wins. Needs `jq`; `bash skills/loopit/test-scripts.sh` self-tests the scripts.
 
 **Project-specific rules belong in that repo's `CLAUDE.md`, not in the skill.** That file is also what lifts `/review-plan` and `/review-deep` from generic bug-hunting to catching *your* mistakes.
 
@@ -119,6 +123,7 @@ Temp dirs and a fake `HOME` — it touches nothing of yours.
 ## Requirements
 
 - `jq` — the commit gate and the installer
+- `jq` and `perl` - `/loopit`'s gate scripts (plus `shasum` or `sha1sum` for the tamper hash). Self-test green on macOS and Debian; on BusyBox (Alpine) `drift.sh` misses doc hits
 - `node` — the plan gate
 - `python3`: `/sessions`, and the commit gate and status line (to date the newest edit; without it they fall back to "since the last commit")
 - `npx playwright` - `/frontend-verify` only (and `/battle-test`'s browser pass, which delegates to it)

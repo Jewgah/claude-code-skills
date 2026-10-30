@@ -48,6 +48,9 @@ reviews the diff, fixes every finding, re-runs the tests, commits, pushes, write
 message, ticks the box, and moves to the next one. It only stops to ask you when there's a real
 product decision to make.
 
+The agent that builds a task is not the one that decides it is done: another agent writes the
+tests first, and the task only ships when those tests pass.
+
 `- [ ]` = to do, `[x]` = done, `[~]` = blocked/needs your decision.
 
 ## The one thing that makes all of this smarter

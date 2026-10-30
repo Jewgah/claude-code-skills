@@ -13,7 +13,7 @@
 - [x] `/thermo-nuclear-code-quality-review` - harsh structural/maintainability review, adapted from Cursor's (MIT, pinned dbf4981)
 - [x] `/choices` - turn blocking product decisions into a message a non-technical stakeholder can answer
 - [x] `/commit` - commit staged work with a why-focused message, refreshing `CLAUDE.md` when the change invalidates it
-- [x] `/loopit` - autonomous task-queue runner, one subagent per task (plan → review-plan → build → verify → review → battle-test → commit → push → client note)
+- [x] `/loopit` - autonomous task-queue runner, one subagent per task (hidden acceptance checks → plan → review-plan → build → verify → review → battle-test → gate → commit → push → client note), with handoffs and fork-on-hard-tasks
 - [x] `/explain-dev` + `/vulgarize` - client-facing change notes (structured template / casual text), EN + FR
 - [x] `/sessions` - recent sessions with their `claude --resume` commands
 - [x] `/skill-stats` - usage leaderboard from the durable log
@@ -31,6 +31,29 @@
 - [ ] Screenshots / sample review output in README
 
 ## Changelog
+
+### 2026-10-30 - /loopit v3: hidden acceptance checks decide, not the builder
+
+- **Check-writer + gate.** Before each task a separate agent writes 1 to 3 executable checks
+  (`CHECKS.md`), proves each fails at baseline for the right reason, and hands the builder only
+  their intents. `run-checks.sh` runs them when the builder reports ready; exit codes decide. The
+  check folder is hashed at the red run, so a check edited afterwards reads as `tampered`, and the
+  committed copies are compared with the ones that passed.
+- **The cycle moved to `EXECUTOR.md`**, the only file a builder reads, so it stops re-paying the
+  orchestrator half on every turn. New executor steps: 5c (over-engineering and regression
+  questions, answered on a `TRIM:` line), 5d (repo-owned logging check), 6b (drift), a secrets
+  grep before commit, and a mutation proof for any new test against a fake, mock or scan.
+- **Handoffs**: a builder past ~60 tool calls writes a note and a fresh one continues from the same
+  tree, up to 3 attempts. **Fork** (`FORK.md`): after a second failed gate round, two builders run
+  in separate worktrees and the first to pass wins.
+- **Model ladder**: every dispatch names its model; client repos (listed in an optional
+  `~/.claude/client-orgs.txt`) and tests against fakes always get the standard tier.
+- Also: `plan:<path>` mode, `stats` mode (`stats.sh`), a re-check of `[~]` blockers before calling
+  the queue empty, an append-only run log, and manual steps on the report instead of a file nobody
+  opened. `drift.sh` lists doc and memory lines that still name something the change removed.
+- `skills/loopit/test-scripts.sh` self-tests the three scripts.
+- **Upgrading**: `install.sh` skips a skill folder that already exists, so an installed v2 stays v2.
+  Move `~/.claude/skills/loopit` aside, then re-run `./install.sh`.
 
 ### 2026-10-30 - status line: branches that were never pushed
 
