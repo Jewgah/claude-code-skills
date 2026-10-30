@@ -32,6 +32,12 @@
 
 ## Changelog
 
+### 2026-10-30 - docs pass
+
+- README, CHEATSHEET and ONBOARDING-PROMPT: test count (31 -> 59), requirements now list what
+  `/loopit`'s scripts need, `/thermo-nuclear-code-quality-review` added to the cheatsheet, links
+  point at their final URLs, long dashes replaced.
+
 ### 2026-10-30 - /loopit v3: hidden acceptance checks decide, not the builder
 
 - **Check-writer + gate.** Before each task a separate agent writes 1 to 3 executable checks

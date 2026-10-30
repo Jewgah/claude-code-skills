@@ -1,4 +1,4 @@
-# What each thing does — in one line
+# What each thing does, in one line
 
 ## The two automatic gates (you don't call these, they just fire)
 
@@ -10,7 +10,7 @@
 That's the whole idea: the two steps everyone skips when they're in a hurry become impossible to
 skip. Everything else in the kit is either what those gates run, or a tool that reuses their data.
 
-**Escape hatches** — because a gate you can't bypass is a gate you'll rip out:
+**Escape hatches**, because a gate you can't bypass is a gate you'll rip out:
 - Plan: tell Claude "skip the plan review".
 - Commit: run the `touch ~/.claude/.skip-commit-review-<repo>-<crc>` printed in the deny message (one repo, one commit), **then** commit (two separate steps).
 
@@ -21,9 +21,10 @@ skip. Everything else in the kit is either what those gates run, or a tool that 
 | `/review` | One careful read of your uncommitted changes: bugs, security, edge cases. Fast, cheap. | Everyday changes, before committing. |
 | `/review-deep` | Sends 4 reviewers at your diff from different angles, then sends *skeptics* to disprove what they found, so you only see findings that survived. Slower, costs more. | The change that scares you: money, auth, data, migrations, shared code. |
 | `/review-plan` | Attacks a plan *before* you build it: what is it assuming, what breaks, what did it forget, is there a simpler way. Ends with Go / Adjust / Rethink. | Any plan bigger than a one-liner. Runs automatically in plan mode. |
-| `/loopit` | You write a checklist of tasks; it does all of them, one at a time, start to finish, without asking permission between tasks. | You have 5 small chores and don't want to babysit each one. |
+| `/loopit` | You write a checklist of tasks; it does all of them, one at a time, start to finish, without asking permission between tasks. A separate agent writes the tests first, so a task only counts as done when they pass. | You have 5 small chores and don't want to babysit each one. |
 | `/battle-test` | Runs every check it safely can, gives your change a score out of 100, and hands you the list of things only a human can test. Never touches real data. | After building something, before you call it done. |
 | `/frontend-verify` | Clicks through your web pages for you and reports what broke in the console or the network tab. | You changed the UI and don't want to check every page by hand. |
+| `/thermo-nuclear-code-quality-review` | A harsh read of how the code is *organised*: giant files, tangled conditions, layers that could disappear. It looks at structure, not bugs, and changes nothing: it only reports. | A file or feature that has become painful to change. |
 | `/security-audit` | Hunts for leaked secrets, missing permission checks and injection holes. | Before going public, or any time money or logins are involved. |
 | `/loopable` | Looks at your repo and history and tells you which recurring chore is worth automating, then builds the top one. | "I keep doing this by hand every week." |
 | `/init-agents` | Sets up a team of specialist assistants inside one repo, tuned to the language it's written in. | A project you'll be working in for a while. |
@@ -39,8 +40,8 @@ skip. Everything else in the kit is either what those gates run, or a tool that 
 Write a file called `loop-tasks.md`:
 
 ```markdown
-- [ ] T1 | . | Empty dashboard shows a blank card — show a "Create your first project" button instead
-- [ ] T2 | . | Signup has no rate limit — 5 per minute per IP, return 429
+- [ ] T1 | . | Empty dashboard shows a blank card - show a "Create your first project" button instead
+- [ ] T2 | . | Signup has no rate limit - 5 per minute per IP, return 429
 ```
 
 Run `/loopit`. For **each** task it plans it, criticises the plan, builds it, runs your tests,
@@ -67,4 +68,4 @@ catch generic mistakes; with it they catch *your* mistakes.
 - The status line shows `project | branch | N uncommitted | reviewed / not reviewed | not pushed` so you can see the commit gate's
   verdict before you hit it.
 - Everything above is plain markdown in `~/.claude/skills/` and `~/.claude/commands/`. Open any of
-  them and edit the wording — they're instructions, not code.
+  them and edit the wording: they're instructions, not code.
