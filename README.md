@@ -30,6 +30,7 @@ Everything else here is either what those gates run, or a tool that reuses their
 | `/choices` | Skill | Turns the open decisions blocking the work into a short message a non-technical stakeholder can answer. For when progress is stuck on a product call, not on code. |
 | `/commit` | Skill | Commits staged changes with a message that explains *why*, and updates `CLAUDE.md` when the change alters something documented there. |
 | `/sessions` | Skill | Lists your recent Claude Code sessions with the exact `claude --resume <id>` command for each. For after a reboot, or "where was that thing I did Tuesday?". |
+| `/dream` | Skill | Reads your last few days of transcripts and proposes memory changes, each backed by the lines you actually typed and a count: a correction you repeated, a call that keeps failing, a memory note a transcript proves wrong. Writes nothing until you pick numbers. Local only, stdlib Python. |
 | `/skill-stats` | Command | Leaderboard of which of these you actually use, from a durable usage log that survives transcript cleanup. |
 
 Plus four hooks in `hooks/`: the two gates, the usage logger they read, and a status line showing `project | branch | N uncommitted | reviewed / not reviewed | not pushed` so you see the gate's verdict before it blocks you.
@@ -78,6 +79,7 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 /choices                    # turn blocking decisions into a message a human can answer
 /commit                     # commit staged work with a why-focused message
 /sessions                   # recent sessions + resume commands
+/dream                      # propose memory fixes from the last 7 days (also: 14 | 7 all)
 /skill-stats                # what you actually use, ranked
 ```
 
@@ -125,7 +127,7 @@ Temp dirs and a fake `HOME`: it touches nothing of yours.
 - `jq`: the commit gate, the installer and `/loopit`'s scripts
 - `perl` and `shasum` (or `sha1sum`): `/loopit`'s gate. Its self-test passes on macOS and Debian; on BusyBox (Alpine) `drift.sh` misses doc hits
 - `node`: the plan gate
-- `python3`: `/sessions`, and the commit gate and status line (to date the newest edit; without it they fall back to "since the last commit")
+- `python3`: `/sessions`, `/dream`, and the commit gate and status line (to date the newest edit; without it they fall back to "since the last commit")
 - `npx playwright` - `/frontend-verify` only (and `/battle-test`'s browser pass, which delegates to it)
 - `/review-deep`, `/loopit` and `/loopable` spawn subagents, so they cost real tokens. Use `/review` for everyday work and keep the deep ones for changes that scare you.
 

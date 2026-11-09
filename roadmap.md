@@ -17,6 +17,7 @@
 - [x] `/explain-dev` + `/vulgarize` - client-facing change notes (structured template / casual text), EN + FR
 - [x] `/sessions` - recent sessions with their `claude --resume` commands
 - [x] `/skill-stats` - usage leaderboard from the durable log
+- [x] `/dream` - manual memory consolidation: transcript extract (stdlib, self-tested) -> evidence-backed proposals -> applies only the numbers you pick
 - [x] **Hooks** - the plan-review gate, the commit-review gate (a review must be newer than the last commit and the last edit), the usage logger they read, and a review-state status line
 - [x] `install.sh` - one-shot installer (idempotent, skips existing, **merges hook wiring into settings.json** with a backup)
 - [x] `test/run-hooks.sh` - 59 assertions proving the hooks behave as documented (fake HOME, temp repos); `HOOKS=<dir>` targets an installed copy
@@ -31,6 +32,12 @@
 - [ ] Screenshots / sample review output in README
 
 ## Changelog
+
+### 2026-11-09 - /dream
+
+- New skill `/dream`: proposes memory adds, edits and deletes from the last N days of transcripts,
+  each with quoted evidence and a count; nothing is written until the user picks. `extract.py
+  --selftest` covers the parser.
 
 ### 2026-10-30 - docs pass
 

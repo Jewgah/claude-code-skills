@@ -33,6 +33,7 @@ skip. Everything else in the kit is either what those gates run, or a tool that 
 | `/choices` | Collects the decisions you're stuck on into one short message someone non-technical can actually answer. | Work is blocked on a decision, not on code. |
 | `/commit` | Saves your staged work with a message that says *why*, not just what. | Every time you commit. |
 | `/sessions` | Lists your recent Claude Code conversations with the exact command to resume each one. | After a reboot, or "where was that thing I did Tuesday?" |
+| `/dream` | Reads your recent conversations and suggests what Claude's memory should learn or forget, with proof for each. Changes nothing until you say which ones. | Once a week, or when Claude keeps making the same mistake. |
 | `/skill-stats` | Ranks which of these you actually use. | Every month or so, to prune what you never touch. |
 
 ## How `/loopit` works in practice
