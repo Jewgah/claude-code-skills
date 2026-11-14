@@ -126,6 +126,8 @@ d=$(jq -n '{tool_input:{plan:"1. do the thing"}}' | node "$HOOKS/plan-review-gat
 [ "$d" = deny ] && ok "unreviewed plan denied" || bad "unreviewed plan" "$d"
 out=$(jq -n '{tool_input:{plan:"1. do it\n<!-- plan-reviewed -->"}}' | node "$HOOKS/plan-review-gate.mjs")
 [ -z "$out" ] && ok "plan carrying the marker is allowed" || bad "marked plan" "$out"
+d=$(jq -n '{tool_input:{plan:"1. add `<!-- plan-reviewed -->` to the docs"}}' | node "$HOOKS/plan-review-gate.mjs" | decision)
+[ "$d" = deny ] && ok "marker only mentioned inline is denied" || bad "inline marker mention" "$d"
 d=$(printf 'not json' | node "$HOOKS/plan-review-gate.mjs" | decision)
 [ "$d" = deny ] && ok "malformed payload fails closed" || bad "malformed payload" "$d"
 

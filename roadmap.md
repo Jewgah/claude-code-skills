@@ -46,8 +46,11 @@
 - Why: a 10-plan trial where the fresh reviewer raised a bug-level finding the inline review had
   missed on 7 plans. Not a clean test of fresh context: the plan authors ran a cheaper model than
   the reviewer.
-- Not exercised yet in a live plan-mode session; the hook's allow/deny logic is unchanged and still
-  covered by `test/run-hooks.sh`.
+- **Marker match tightened**: the gate now passes only when a line of the plan, trimmed, equals
+  `<!-- plan-reviewed -->`. Before, any plan containing the text `plan-reviewed` passed, so a plan
+  that merely mentioned the marker skipped its review.
+- The fresh-agent dispatch is not exercised yet in a live plan-mode session; the hook's allow/deny
+  logic is covered by `test/run-hooks.sh`.
 
 ### 2026-11-09 - /dream
 

@@ -10,7 +10,8 @@ process.stdin.on("end", () => {
   try { plan = (JSON.parse(raw).tool_input || {}).plan || ""; } catch {}
 
   // Already reviewed → let the plan through.
-  if (plan.includes("plan-reviewed")) process.exit(0);
+  // Own-line match: a plan that merely mentions the marker in a sentence is not reviewed.
+  if (plan.split("\n").some(l => l.trim() === "<!-- plan-reviewed -->")) process.exit(0);
 
   // Who reviews: in a 10-plan trial on the author's own setup, a reviewer that never saw the
   // planning raised a bug-level finding the inline review had missed on 7 plans. Caveat: the plan
