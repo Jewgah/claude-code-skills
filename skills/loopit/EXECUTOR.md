@@ -74,6 +74,16 @@ blocked report. Never guess your way past one.
   `/review-plan review the plan file at ~/.claude/plans/loopit-{repo-basename}-{crc}-{TASK-ID}.md`. Never call it bare:
   without a path it has no plan to find, and in a parallel run the wrong one is easy to grab.
   Under 12 files, "adds a capability" and "shared component" never qualify alone.
+- **Second review by a fresh reviewer**: on a standard-tier dispatch, `Attempt: 1`, when the plan
+  touches 3 or more files and was not already sent to the reviewer above. Run the inline review
+  first and **do not edit the plan yet**: the reviewer must see the same plan. Then dispatch the
+  same reviewer as above (same agent type, same `model`), its prompt prefixed with "Read-only:
+  change no file.", and add none of your reasoning. Apply the findings of both reviews; the worse verdict drives the rest of this step.
+  If the dispatch fails, keep the inline result and say so in your report: the plan was already
+  reviewed once, so the quota fallback below does not apply to this second pass. (Why: in a 10-plan
+  trial, a reviewer that never saw the planning raised a finding the inline review had missed, one
+  that would have caused a bug or rework, on 7 plans. The builders there ran a cheaper model than
+  the reviewer, so part of that gain may be the model and not the fresh context.)
 - **Quota fallback**: if the dispatch errors or returns null (typically a usage/rate limit),
   re-dispatch the identical prompt one tier down. Never skip the review, and never burn retries
   hammering the same tier: one attempt, then fall back. If the Agent tool is not available at all,

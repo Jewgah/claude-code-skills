@@ -33,6 +33,22 @@
 
 ## Changelog
 
+### 2026-11-15 - plan review by a fresh agent
+
+- **Plan gate**: for a plan touching 3 or more files, `plan-review-gate.mjs` now asks for the review
+  to be dispatched to one fresh agent (plan file plus the user's request word for word, none of the
+  author's reasoning) instead of run by the session that wrote the plan. Smaller plans, no Agent
+  tool, or a failed dispatch fall back to the inline review. A plan that got the second opinion
+  carries a `<!-- double-checked: fresh reviewer, verdict ... -->` line above the marker. The tag is
+  written by the model and not verified by the hook.
+- **`/loopit` Step 2**: a standard-tier, first-attempt plan touching 3 or more files gets the same
+  fresh second review on top of the inline one; the worse verdict wins.
+- Why: a 10-plan trial where the fresh reviewer raised a bug-level finding the inline review had
+  missed on 7 plans. Not a clean test of fresh context: the plan authors ran a cheaper model than
+  the reviewer.
+- Not exercised yet in a live plan-mode session; the hook's allow/deny logic is unchanged and still
+  covered by `test/run-hooks.sh`.
+
 ### 2026-11-09 - /dream
 
 - New skill `/dream`: proposes memory adds, edits and deletes from the last N days of transcripts,
