@@ -45,7 +45,7 @@ only PLANNED/discussed. The status drives the whole message:
 - NO technical jargon: no file names, no function names, no code, no "API", no "script", no
   "migration", no "database", no "SQL", no "bug fix".
 - No emojis.
-- NEVER use an em dash (-), en dash (–) or arrow (→) - they read as AI-written. Use a comma, a
+- NEVER use an em dash (U+2014), en dash (–) or arrow (→) - they read as AI-written. Use a comma, a
   period, parentheses, or the word "to" instead.
 - ~25 lines maximum. Stay concise but leave room for the test section.
 - Output ONLY the message. No preamble, no explanation, no commit hashes, no ticket links.

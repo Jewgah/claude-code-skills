@@ -37,7 +37,7 @@ informal (tutoiement, no polite formulas). Everything else below is identical.
 - **If a technical concept is unavoidable**, explain it in parentheses: "a snapshot (a frozen copy)".
 - **No bullet lists, no markdown**: plain text, it's a message not a document.
 - **Short and direct**: no "here's what I did" preamble. Get straight to it.
-- **NEVER use an em dash (-), en dash (–) or arrow (→)** - they read as AI-written. Use a comma, a
+- **NEVER use an em dash (U+2014), en dash (–) or arrow (→)** - they read as AI-written. Use a comma, a
   period, parentheses, or the word "to" instead.
 
 ## Output format

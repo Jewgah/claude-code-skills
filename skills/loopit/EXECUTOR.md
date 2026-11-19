@@ -18,19 +18,18 @@ look for them. At the end of Step 6 you stop WITHOUT committing, write the hando
 `STATUS: ready`. The orchestrator installs and runs the checks, then answers by message:
 
 - **GO**: the checks passed. It names the check files it left in the repo; they join your commit
-  (Step 7), plus the drift lines for Step 6b. Run Steps 6b to 9b, then the final report.
+  (Step 7), plus the drift lines for Step 6b, and "consent given" or "refused" when your ready
+  carried a `REAL-AI-REQUEST:` (Step 6). Run Steps 6b to 9b, then the final report.
 - **FAIL**: it names the failing checks and their first error lines. Fix the behaviour (never
   guess at the test's internals), re-run Steps 4 to 6 (re-review if the fix is not trivial), and
   return `STATUS: ready` again.
 - **FAIL-REPORT**: the ready block or note lacks what it names: fix it, ready again.
-- **consent given / refused** (answer to `REAL-AI-REQUEST:`): run the command once, or mark
-  `REAL-AI: unproven`; then ready again.
 - An intent you believe is wrong, contradicts the task, or cannot be met: return
   `STATUS: check-dispute` with the intent and your reason on `DISPUTE:`. Never build around it
   silently, never weaken the behaviour to make a check pass.
 - **Inline mode** (you are running the cycle yourself, with no orchestrator above you to answer):
-  there is no check-writer, no gate and no drift run. Do not stop at `ready`; go from Step 6 to
-  Step 7 and put `CHECKS: 0 (inline mode)` in your report.
+  there is no check-writer, no gate, no drift run and no real AI run (`REAL-AI: unproven`). Do
+  not stop at `ready`; go from Step 6 to Step 7 and put `CHECKS: 0 (inline mode)` in your report.
 
 **Your dispatch carries `Tier`, `Attempt`, `Baseline HEAD` and a `Handoff note path`.** Tier tells
 you whether you are a fast-tier dispatch (it changes what you do at Step 2 and Step 5). Attempt
@@ -222,16 +221,19 @@ check seen red on the pre-fix code (Step 5 rules), or says why none can exist. F
   handoff note. No `staging_dev`, or a screen it cannot reach: `UNSEEN: <screen, why>` on the
   ready block, never a guess.
 - **Real AI run**: a change to prompt parsing or AI output, in a repo whose dispatch names a
-  `real_ai` harness: do NOT run it. Return `ready` with `REAL-AI-REQUEST: <exact command, capped at
-  10 calls by the harness's own filter flags>`; run it only once the orchestrator says consent was
-  given, in ONE command, then ready again. No harness, its API key missing (harness exits
-  non-zero), or consent refused: `REAL-AI: unproven`, also in HOW-TO-TEST.
+  `real_ai` harness: do NOT run it. Put `REAL-AI-REQUEST: <exact command, capped at 10 calls by
+  the harness's own filter flags>` on the ready block; a later ready repeats it unchanged. The
+  answer comes with GO: on "consent given" run it ONCE, before Step 7. A crash or non-zero exit:
+  `REAL-AI: unproven (<why>)`, never a second request. A real run that shows a bug: fix it and
+  ready again, `REAL-AI: unproven (fixed after the run)`. No harness or "refused": `REAL-AI:
+  unproven`. Whatever the outcome, say it in HOW-TO-TEST.
 - **Red is a hard gate**: fix and re-run; if the fix is non-trivial, re-review (Step 5) first.
   Never return `ready` on a red suite.
 - **Its score is not reported.** A number the builder's own session produces is not a verdict; the
   acceptance checks are. Keep only its manual list, for Step 9 and the report's `BATTLE-TEST:`
   line. Turn that list, plus the visible behaviour the task changed, into the report's
-  `HOW-TO-TEST:`: the dispatch's `qa_env` URL (never prod when a staging exists), the role and how
+  `HOW-TO-TEST:`: the dispatch's `qa_env` URL (`env: none configured` if it has none; never prod
+  when a staging exists), the role and how
   to reach it, every 5b (d) precondition, numbered steps with expected results, then at least ONE
   neighbour-state step and ONE "X does NOT happen". `-` only for a change nobody sees. The person
   testing it reads that, not the diff.

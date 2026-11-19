@@ -201,6 +201,17 @@ lint "$(printf 'a -> check: tests/regress.test.js\nb -> check: old.txt')"; expec
 lint "maps a -> b wrong -> check: tests/regress.test.js";                 expect "caught: an arrow inside the mistake passes" 0 $?
 lint 'x -> check: `tests/regress.test.js`';                               expect "caught: a backticked path passes" 0 $?
 lint "x -> check: ./tests/regress.test.js";                               expect "caught: a ./ path passes" 0 $?
+lint "CAUGHT: none caught";                                               expect "caught: the CAUGHT: label piped along passes" 0 $?
+lint "- none caught";                                                     expect "caught: a bulleted none caught passes" 0 $?
+bash "$CL" > /dev/null 2>&1;                                              expect "caught: no arguments is usage (4)" 4 $?
+printf 'none caught\n' | bash "$CL" "$cr" deadbeef > /dev/null 2>&1;      expect "caught: an unknown sha is usage (4)" 4 $?
+git -C "$cr" rm -q old.txt && echo t > "$cr/tests/é.test.js" && git -C "$cr" add . && git -C "$cr" -c user.name=t -c user.email=t@t commit -qm del
+lint "x -> check: tests/é.test.js";                                       expect "caught: a non-ASCII path passes" 0 $?
+lint "x -> check: old.txt";                                               expect "caught: a file the commit deleted fails" 1 $?
+git -C "$cr" checkout -qb side HEAD~1 && echo s > "$cr/side.txt" && git -C "$cr" add . && git -C "$cr" -c user.name=t -c user.email=t@t commit -qm side
+git -C "$cr" checkout -q - && git -C "$cr" -c user.name=t -c user.email=t@t merge -q --no-edit side
+lint "x -> check: side.txt";                                              expect "caught: a merge counts what it brought in" 0 $?
+lint "x -> check: tests/é.test.js";                                       expect "caught: a merge does not count mainline files" 1 $?
 cz=$tmp/caught-root; mkdir -p "$cz"; git -C "$cz" init -q
 echo t > "$cz/first.test.js" && git -C "$cz" add . && git -C "$cz" -c user.name=t -c user.email=t@t commit -qm root
 printf 'x -> check: first.test.js\n' | bash "$CL" "$cz" HEAD > /dev/null 2>&1; expect "caught: a check in the repo's root commit passes" 0 $?

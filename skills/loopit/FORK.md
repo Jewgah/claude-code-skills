@@ -26,7 +26,7 @@ only where a task has proven hard.
   builder's handoff note, the last FAIL lines, and "a previous attempt failed here; you may keep or
   discard its approach". Each stops at `STATUS: ready`, never commits.
 - **Gate each `ready` one after the other, never concurrently** (both write logs into the same
-  manifest folder): `run-checks.sh {manifest} green {worktree} {HASH}`. First `green-ok` wins; a
+  manifest folder), after SKILL.md step 4's report check, and its `REAL-AI-REQUEST:` rule on GO: `run-checks.sh {manifest} green {worktree} {HASH}`. First `green-ok` wins; a
   second branch still running is left to finish and ignored.
 - **Winner into the main tree**, WITHOUT the check files `green-ok` left installed there (its
   `INSTALLED` lines; carried over they make the main gate return `collision`): `git -C {winner}

@@ -97,7 +97,7 @@ These are where the loop's lessons live. Apply every one that matches.
 - **Any user-visible behaviour**: one check covers the neighbour state of the named one (second
   time, zero or empty, reverse action, resumed or reloaded, after an async load, another phrasing),
   the one most likely to break.
-- **QA rework** (a `qa-rework` note): reproduce the tester's exact input AND the account state
+- **QA rework** (the task re-opens after a tester's report): reproduce the tester's exact input AND the account state
   behind it (a saved setting, data from an earlier action).
 - **A migration**: applied to the local dump copy, then a query on the resulting shape or count.
   Never against production.

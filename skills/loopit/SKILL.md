@@ -282,7 +282,7 @@ nothing of this session):
     STATUS: shipped | shipped-uncommitted | blocked | push-pending-consent | escalate | handoff
     HANDOFF: {path to the note, only if handoff. The note holds: what shipped, what
     remains, files touched, the exact next step, ATTEMPT n/3, RED-CAUSES (each cause
-    seen red, verbatim), MUTATION-PROOFS and CAUGHT so far. The agent that observed a test
+    seen red, verbatim), MUTATION-PROOFS, CAUGHT and the REAL-AI answer so far. The agent that observed a test
     go red is not the one that will file the final report.}
     COMMIT: {sha or -, and always - in no-repo mode}
     BATTLE-TEST: manual: {the checks /battle-test could not run, or -}
@@ -368,17 +368,17 @@ the cwd: run that queue from a session opened in the repo.
    `loopit-checks`, never a check command, never test code.
 4. **Report check, on `STATUS: ready`, before the gate**: a UI diff with neither screenshot paths
    in the handoff note nor a non-`-` `UNSEEN:`, or a visible change whose HOW-TO-TEST draft lacks env, role,
-   neighbour step or "does NOT happen": answer `FAIL-REPORT: <what is missing>`. Not a gate round:
-   one retry, then log and go on. A `REAL-AI-REQUEST:`: ask the user (AskUserQuestion) with the
-   command and call count. On yes, grant whatever paid-API consent your setup needs as its own
-   step, then tell the builder "consent given"; on no, "refused". That answer replaces the gate:
-   the gate runs on the NEXT ready.
+   neighbour step or "does NOT happen": answer `FAIL-REPORT: <what is missing>`. `env: none
+   configured` counts as an env. Not a gate round: one retry per task, then log it and gate.
    **Gate**, then: `run-checks.sh {manifest} green {repo | -} {HASH}`. Resume the
    builder with SendMessage (the agentId from its dispatch):
    - `green-ok`, or the task has no checks: in git mode first run
      `bash ~/.claude/skills/loopit/drift.sh {repo} {Baseline HEAD}` (information, never a gate), then
      "GO. Commit these check files with the task: {the INSTALLED paths, or none}. Drift: {drift.sh
-     output verbatim}." It returns its final report. A task that reached `green-ok` is never gated
+     output verbatim}." It returns its final report. A ready carrying `REAL-AI-REQUEST:`: before
+     that GO, ask the user (AskUserQuestion) with the command and call count, ONCE per task (a later
+     ready reuses the answer, and a handoff note carries it). On yes, grant whatever paid-API
+     consent your setup needs as its own step; add "consent given" or "refused" to the GO. A task that reached `green-ok` is never gated
      again: a successor gets GO with the same INSTALLED paths.
    - `green-fail` or `collision`: "FAIL, gate round {r}/3. {the FAIL / COLLISION lines}. First
      error lines: {`grep -nEi 'error|fail|expected|assert' {manifest dir}/green-{i}.log | head -20 |
@@ -393,9 +393,9 @@ the cwd: run that queue from a session opened in the repo.
    - SendMessage cannot reach the builder: dispatch a fresh one at Attempt n+1 with the handoff
      note it wrote at ready, under the handoff rules below.
    - **Every re-dispatch of the same task** (escalate, handoff, dead builder) carries the SAME
-     intents, `EXISTS`, manifest, HASH and round count. One check-writer per task, plus one retry.
+     intents, `EXISTS`, manifest, HASH, round count and any REAL-AI answer. One check-writer per task, plus one retry.
 5. **After a final report with a COMMIT sha** (git mode): pipe its `CAUGHT:` into `bash ~/.claude/skills/loopit/caught-lint.sh {repo}
-   {COMMIT}`; `BAD` goes to the user. Checks installed: `run-checks.sh {manifest}
+   {COMMIT}`; `BAD` or exit 4 goes to the user. Checks installed: `run-checks.sh {manifest}
    committed {repo} {COMMIT} {HASH}`; `tampered` is shown to the user too. `committed-diff` means a
    check was weakened after GO: show the user before the next task. Then append `CHECKS: {n}, red
    {red-ok | none | failed}, gate rounds {r}, disputes {d}, first-pass {yes | no | -}, {the CAUGHT line}`: `yes` only
