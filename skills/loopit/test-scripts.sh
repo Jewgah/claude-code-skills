@@ -181,5 +181,33 @@ out=$(LOOPIT_STATS="$sf" bash "$ST")
 echo "$out" | grep -q 'last 30 days: 3 tasks, 2 with executable checks, first-pass 1/2 (50%)' && ok "stats: summary counts first-pass on tasks with checks" || bad "stats: summary ($(echo "$out" | head -1))"
 
 
+# --- caught-lint.sh (CAUGHT_LINT=/path/to/copy overrides it, to prove a mutation red)
+CL=${CAUGHT_LINT:-$here/caught-lint.sh}
+cr=$tmp/caught; mkdir -p "$cr/tests"; git -C "$cr" init -q
+echo a > "$cr/old.txt" && git -C "$cr" add . && git -C "$cr" -c user.name=t -c user.email=t@t commit -qm base
+echo t > "$cr/tests/regress.test.js" && git -C "$cr" add . && git -C "$cr" -c user.name=t -c user.email=t@t commit -qm fix
+lint() { printf '%s\n' "$1" | bash "$CL" "$cr" HEAD > "$tmp/cl.out" 2>&1; }
+lint "none caught";                                                       expect "caught: none caught passes" 0 $?
+lint "- off-by-one in page count -> check: tests/regress.test.js";        expect "caught: check in the commit passes" 0 $?
+lint "off-by-one -> check: old.txt";                                      expect "caught: file not changed in the commit fails" 1 $?
+lint "off-by-one -> check: tests/missing.test.js";                        expect "caught: missing file fails" 1 $?
+lint "wrong tone in copy -> none: hard";                                  expect "caught: none with a 1-word reason fails" 1 $?
+lint "wrong tone in copy -> none: a judgment call, nothing mechanical";   expect "caught: none with a real reason passes" 0 $?
+grep -q '^NONE ' "$tmp/cl.out";                                           expect "caught: none entries are echoed for the End report" 0 $?
+lint "fixed the null check";                                              expect "caught: entry without -> fails" 1 $?
+lint "x -> maybe: later";                                                 expect "caught: unknown verdict fails" 1 $?
+lint "";                                                                  expect "caught: empty input fails" 1 $?
+lint "$(printf 'a -> check: tests/regress.test.js\nb -> check: old.txt')"; expect "caught: one bad line among good ones fails" 1 $?
+lint "maps a -> b wrong -> check: tests/regress.test.js";                 expect "caught: an arrow inside the mistake passes" 0 $?
+lint 'x -> check: `tests/regress.test.js`';                               expect "caught: a backticked path passes" 0 $?
+lint "x -> check: ./tests/regress.test.js";                               expect "caught: a ./ path passes" 0 $?
+cz=$tmp/caught-root; mkdir -p "$cz"; git -C "$cz" init -q
+echo t > "$cz/first.test.js" && git -C "$cz" add . && git -C "$cz" -c user.name=t -c user.email=t@t commit -qm root
+printf 'x -> check: first.test.js\n' | bash "$CL" "$cz" HEAD > /dev/null 2>&1; expect "caught: a check in the repo's root commit passes" 0 $?
+# the orchestrator's re-run must not sit under the "checks installed" condition (tasks without checks need it most)
+grep -q 'After a final report with a COMMIT sha\*\* (git mode): pipe its `CAUGHT:`' "$here/SKILL.md"
+expect "caught: orchestrator lints every committed task, not only those with checks" 0 $?
+
+
 echo; [ "$fails" -eq 0 ] && { echo "all green"; exit 0; }
 echo "$fails failing"; exit 1

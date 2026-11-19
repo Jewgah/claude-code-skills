@@ -4,7 +4,7 @@ description: Turn the technical changes in the working tree into a short, casual
 argument-hint: "[lang: en (default) | fr] [optional context]"
 ---
 
-# Vulgarize — plain-language summary of what changed
+# Vulgarize - plain-language summary of what changed
 
 Produce a simple message for a **non-technical client** summarising the code changes. It reads like
 the developer texting the client directly, not like a release note.
@@ -25,7 +25,7 @@ informal (tutoiement, no polite formulas). Everything else below is identical.
 
 ## Writing rules
 
-- **First person, speaking directly to them**: "I did…", "I added…" — as if you are the developer
+- **First person, speaking directly to them**: "I did…", "I added…" - as if you are the developer
   talking TO the client. Never refer to the client in the third person ("the client asked…"). Say
   "you mentioned that…" when referencing feedback you got.
 - **No technical jargon**: no file names, function names, variable names, component names. Ever.
@@ -37,7 +37,7 @@ informal (tutoiement, no polite formulas). Everything else below is identical.
 - **If a technical concept is unavoidable**, explain it in parentheses: "a snapshot (a frozen copy)".
 - **No bullet lists, no markdown**: plain text, it's a message not a document.
 - **Short and direct**: no "here's what I did" preamble. Get straight to it.
-- **NEVER use an em dash (—), en dash (–) or arrow (→)** — they read as AI-written. Use a comma, a
+- **NEVER use an em dash (-), en dash (–) or arrow (→)** - they read as AI-written. Use a comma, a
   period, parentheses, or the word "to" instead.
 
 ## Output format

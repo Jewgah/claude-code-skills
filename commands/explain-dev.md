@@ -1,6 +1,6 @@
 ---
 description: Write a WhatsApp-ready, non-technical message explaining a development to the client
-argument-hint: "[lang: en (default) | fr] — optionally followed by what to cover"
+argument-hint: "[lang: en (default) | fr] - optionally followed by what to cover"
 ---
 
 Write a concise, non-technical, copy-paste-ready WhatsApp message explaining the development
@@ -9,17 +9,17 @@ discussed or delivered in this conversation. Translate technical work into clien
 **Language:** `en` by default. If `$ARGUMENTS` starts with `fr`, write it in French instead, using
 the French strings in the table below. Everything else about the format is identical.
 
-**Step 1 — determine the dev's STATUS before writing anything.** Scan the conversation for signs it
+**Step 1 - determine the dev's STATUS before writing anything.** Scan the conversation for signs it
 is ALREADY shipped (commit made, pushed, merged, deployed, delivered, tests green in prod) versus
 only PLANNED/discussed. The status drives the whole message:
 
 - **Already shipped** → past/present tense ("I added…", "the form now has…", "you can now…").
-  Never future or conditional. The test section is titled *How to test* — it's live, so never
+  Never future or conditional. The test section is titled *How to test* - it's live, so never
   "once delivered".
 - **Planned** → near-future tense, and the test section keeps the "once delivered" title.
 - **When in doubt** (no sign of delivery), treat it as PLANNED.
 
-**Step 2 — build the message.**
+**Step 2 - build the message.**
 1. Identify the tasks/features involved.
 2. Group them by theme when it helps.
 3. Turn each technical task into a client/user benefit.
@@ -45,7 +45,7 @@ only PLANNED/discussed. The status drives the whole message:
 - NO technical jargon: no file names, no function names, no code, no "API", no "script", no
   "migration", no "database", no "SQL", no "bug fix".
 - No emojis.
-- NEVER use an em dash (—), en dash (–) or arrow (→) — they read as AI-written. Use a comma, a
+- NEVER use an em dash (-), en dash (–) or arrow (→) - they read as AI-written. Use a comma, a
   period, parentheses, or the word "to" instead.
 - ~25 lines maximum. Stay concise but leave room for the test section.
 - Output ONLY the message. No preamble, no explanation, no commit hashes, no ticket links.
@@ -58,7 +58,7 @@ only PLANNED/discussed. The status drives the whole message:
 - No technical jargon.
 - Simple numbering ("1.", "2.", …), one line per step where possible.
 - Cover the main path plus 1-2 important edge cases if relevant.
-- 3 to 5 steps max — it's a WhatsApp message, not a full guide.
+- 3 to 5 steps max - it's a WhatsApp message, not a full guide.
 - No closing formula inside this section; the global closing line follows immediately.
 
 ## Example output (planned, English)

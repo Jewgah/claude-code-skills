@@ -1,5 +1,5 @@
 {
-  "_comment": "init-agents fragment — DEEP-MERGE into .claude/settings.json. Union the permission arrays; append hook matcher-groups without duplicating. Drop the PreToolUse block unless the guard was opted in. Remove this _comment key before writing.",
+  "_comment": "init-agents fragment - DEEP-MERGE into .claude/settings.json. Union the permission arrays; append hook matcher-groups without duplicating. Drop the PreToolUse block unless the guard was opted in. Remove this _comment key before writing.",
   "permissions": {
     "allow": [
       {{PERMISSIONS_ALLOW}}

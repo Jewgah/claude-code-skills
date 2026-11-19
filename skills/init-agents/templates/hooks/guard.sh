@@ -11,11 +11,11 @@ block() { echo "Blocked by .claude/hooks/guard.sh: $1" >&2; exit 2; }
 
 case "$cmd" in
   # Deliberately conservative: blocks ANY absolute-path or home recursive delete
-  # (substring match), not just "/". Over-blocking is the point — the agent sees
+  # (substring match), not just "/". Over-blocking is the point - the agent sees
   # the reason and can ask you to run it yourself. Relative-path rm -rf passes.
-  *"rm -rf /"*|*"rm -rf ~"*|*"rm -rf /*"*) block "recursive delete of an absolute/home path — run it yourself if intended" ;;
+  *"rm -rf /"*|*"rm -rf ~"*|*"rm -rf /*"*) block "recursive delete of an absolute/home path - run it yourself if intended" ;;
   *"git push --force"*|*"git push -f"*)     block "force-push (use --force-with-lease after review)" ;;
-  *"git reset --hard"*)                      block "hard reset (discards work — run it yourself if intended)" ;;
+  *"git reset --hard"*)                      block "hard reset (discards work - run it yourself if intended)" ;;
   *":(){ :|:&};:"*)                          block "fork bomb" ;;
 esac
 

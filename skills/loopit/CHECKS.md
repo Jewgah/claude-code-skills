@@ -76,6 +76,9 @@ TREE: {git status --porcelain after your uninstall: must be empty}
   local stack): return `checks: []` with `none` set to the reason, and decide it early rather than
   after twenty tool calls. An honest `none` is a valid result; a weak check is not.
 
+- **Intent over example.** The named example is one instance: intents state the general
+  behaviour, and at least one check exercises a case the task did NOT name.
+
 ## Templates: pick the ones the task touches
 
 These are where the loop's lessons live. Apply every one that matches.
@@ -91,5 +94,10 @@ These are where the loop's lessons live. Apply every one that matches.
 - **A Firestore rules change** (only when the repo runs the emulator): the changed collection AND
   its child or sibling collections, denormalized copies, and the matching Storage paths.
 - **A bug fix**: the check reproduces the bug. Red means the bug exists today.
+- **Any user-visible behaviour**: one check covers the neighbour state of the named one (second
+  time, zero or empty, reverse action, resumed or reloaded, after an async load, another phrasing),
+  the one most likely to break.
+- **QA rework** (a `qa-rework` note): reproduce the tester's exact input AND the account state
+  behind it (a saved setting, data from an earlier action).
 - **A migration**: applied to the local dump copy, then a query on the resulting shape or count.
   Never against production.

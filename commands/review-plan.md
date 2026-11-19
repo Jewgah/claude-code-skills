@@ -1,5 +1,5 @@
 ---
-description: Critically review the current plan/approach before implementing — assumptions, gaps, blast radius, deploy safety
+description: Critically review the current plan/approach before implementing - assumptions, gaps, blast radius, deploy safety
 argument-hint: "[optional: the plan or approach to review]"
 ---
 
@@ -13,7 +13,7 @@ Locate the plan to review, in this priority order, and state which source you us
 visible immediately.
 
 **Proportionality**: depth scales with blast radius. A one-line fix gets a one-paragraph
-review; do not manufacture findings to fill the checklist — an honest "nothing found" on a
+review; do not manufacture findings to fill the checklist - an honest "nothing found" on a
 step is a valid answer.
 
 Critically review the current plan or approach before proceeding with implementation:
@@ -22,9 +22,9 @@ Critically review the current plan or approach before proceeding with implementa
 
 2. **Challenge assumptions**: For each step in the plan:
    - What are we assuming to be true? Is it actually true?
-   - Read the relevant code/docs to verify — don't rely on memory or guesses
+   - Read the relevant code/docs to verify - don't rely on memory or guesses
    - For the RISKIEST assumption, prefer a cheap runnable read-only check (a script, a
-     query, a curl) over reading code when one exists — an executed proof beats an
+     query, a curl) over reading code when one exists - an executed proof beats an
      inferred one (e.g. run the exact DB query the plan relies on against a copy/prod
      read-only before betting the fix on it).
    - Are we solving the right problem, or a symptom?
@@ -37,17 +37,17 @@ Critically review the current plan or approach before proceeding with implementa
      table next to an existing one. Both plans read as sound until the lookup was run.
 
 2b. **Project-rules check**: grep the target repo's `CLAUDE.md` + recalled memories for
-   project-specific rules the plan touches — branch/deploy gotchas, "new query ships its
+   project-specific rules the plan touches - branch/deploy gotchas, "new query ships its
    index in the same commit", i18n locale count, commit/dependency conventions. Cite each
    rule the plan interacts with and say whether it complies. (A missing-index rule
    violation shipped to prod precisely because no review step looked for repo rules.)
 
-2c. **Root-cause / attribution audit** (when the plan — or the message/diagnosis it rests on —
+2c. **Root-cause / attribution audit** (when the plan - or the message/diagnosis it rests on -
    pins a fault, *especially* on an external party or vendor): (a) was OUR side of the flow
    inspected and the exact code path cited? Where an error *originates* is not where it is
    *caused*. (b) Is a "systemic" claim backed by ≥2 independent data points, not one case? (c) Has
    the "assume it IS us" devil's-advocate pass been run? If any answer is no, the attribution is
-   unproven — flag it and demand the check before the plan proceeds. (Origin: a confident
+   unproven - flag it and demand the check before the plan proceeds. (Origin: a confident
    external-blame diagnosis shipped with none of these done.)
 
 3. **Error scenario audit**: Walk through every failure path:
@@ -68,7 +68,7 @@ Critically review the current plan or approach before proceeding with implementa
 
 6. **Omission check**: Audit what the plan does NOT mention:
    - Tests, rollback path, data migration, observability/logging
-   - The "do nothing" baseline — is this change even necessary?
+   - The "do nothing" baseline - is this change even necessary?
    - List each gap explicitly.
 
 7. **Deploy & reversibility**: If the plan touches a server or DB:
@@ -80,7 +80,7 @@ Critically review the current plan or approach before proceeding with implementa
 
 9. **Verdict**: Summarize findings as:
    - **Confirmed**: Assumptions that hold up after verification
-   - **Invalidated**: Assumptions that were wrong — with corrections
+   - **Invalidated**: Assumptions that were wrong - with corrections
    - **Risks**: Remaining concerns or edge cases to handle
    - **Riskiest assumption**: the single assumption that, if false, sinks the plan
    - **Call**: Go / Adjust / Rethink (one word + one sentence why)

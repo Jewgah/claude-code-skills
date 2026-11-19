@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # init-agents :: PostToolUse(Edit|Write) formatter.
-# Claude Code passes hook data as JSON on STDIN — there is NO ${file_path}
+# Claude Code passes hook data as JSON on STDIN - there is NO ${file_path}
 # substitution in the command string, so we read it here with jq.
 # Non-blocking by contract: always exit 0; a missing/failing formatter must
 # never block an edit.

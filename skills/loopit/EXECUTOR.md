@@ -22,6 +22,9 @@ look for them. At the end of Step 6 you stop WITHOUT committing, write the hando
 - **FAIL**: it names the failing checks and their first error lines. Fix the behaviour (never
   guess at the test's internals), re-run Steps 4 to 6 (re-review if the fix is not trivial), and
   return `STATUS: ready` again.
+- **FAIL-REPORT**: the ready block or note lacks what it names: fix it, ready again.
+- **consent given / refused** (answer to `REAL-AI-REQUEST:`): run the command once, or mark
+  `REAL-AI: unproven`; then ready again.
 - An intent you believe is wrong, contradicts the task, or cannot be met: return
   `STATUS: check-dispute` with the intent and your reason on `DISPUTE:`. Never build around it
   silently, never weaken the behaviour to make a check pass.
@@ -55,7 +58,8 @@ blocked report. Never guess your way past one.
   A task that adds nothing (a fix, a rename, a copy change) says so in one line.
 - Write a short plan to `~/.claude/plans/loopit-{repo-basename}-{crc}-{TASK-ID}.md` (crc = `printf %s {repo root} | cksum | cut -d' ' -f1`;
   task ids like `1` or `A1` repeat across repos, so the repo is in the name): problem, root cause, files to touch,
-  the minimal change, how to verify. Keep it lazy - smallest change that satisfies the acceptance.
+  the minimal change, how to verify, and `Variants:` the named example plus 3 neighbour states or
+  phrasings that must also work. Keep it lazy - smallest change that satisfies the acceptance.
 
 ### Step 2 - Review the plan (always; the strongest-model DISPATCH is what is gated)
 
@@ -150,7 +154,9 @@ After the review's findings are addressed, spend ONE honest pass on what the rev
   own **server-side** permission check, or is the UI the only thing hiding it? Hidden buttons are
   not access control. (b) Is every id that arrives from the client checked against the caller's own
   tenant/user before it is used to read or write? (c) Always: new env var, secret, index or
-  migration implied and not done?
+  migration implied and not done? (d) Always: the account preconditions the feature depends on
+  (a connected integration, earlier data such as a prior reply, a saved setting, the role);
+  each goes into HOW-TO-TEST.
   On Firebase specifically: changed Firestore rules, did you check Storage rules? Scoped one
   collection, are its child and sibling collections, denormalized copies and file-storage paths
   scoped the same way?
@@ -202,20 +208,36 @@ not.
   the new path is silent unless you log it on purpose.
 - Result goes on the report's `CHECK-LOGGING:` line: gaps found, fixed, deliberately left and why.
 
+### Step 5e - Caught mistakes become checks
+Each mistake caught here (fixed review finding, red you caused, gate FAIL cause) leaves a
+check seen red on the pre-fix code (Step 5 rules), or says why none can exist. Format:
+`caught-lint.sh` header. On `CAUGHT:` and in the handoff.
+
 ### Step 6 - Battle-test (gate before push)
 - Run `/battle-test` AFTER the review's fixes (a review fix can break a test or the types). It
-  re-runs what your dispatch names, adds the browser pass for UI diffs, and returns what ran, a
-  score, and the checks that still need a human.
+  re-runs what your dispatch names and returns what ran, a score, and the checks that still need
+  a human.
+- **Browser pass, UI diff**: on the dispatch's `staging_dev` command, signed in with its QA
+  account. Screenshot every changed screen, light and dark, 1440 and 375; list the paths in the
+  handoff note. No `staging_dev`, or a screen it cannot reach: `UNSEEN: <screen, why>` on the
+  ready block, never a guess.
+- **Real AI run**: a change to prompt parsing or AI output, in a repo whose dispatch names a
+  `real_ai` harness: do NOT run it. Return `ready` with `REAL-AI-REQUEST: <exact command, capped at
+  10 calls by the harness's own filter flags>`; run it only once the orchestrator says consent was
+  given, in ONE command, then ready again. No harness, its API key missing (harness exits
+  non-zero), or consent refused: `REAL-AI: unproven`, also in HOW-TO-TEST.
 - **Red is a hard gate**: fix and re-run; if the fix is non-trivial, re-review (Step 5) first.
   Never return `ready` on a red suite.
 - **Its score is not reported.** A number the builder's own session produces is not a verdict; the
   acceptance checks are. Keep only its manual list, for Step 9 and the report's `BATTLE-TEST:`
   line. Turn that list, plus the visible behaviour the task changed, into the report's
-  `HOW-TO-TEST:` steps (staging URL, test account, step, expected result): the person testing it
-  reads that, not the diff.
+  `HOW-TO-TEST:`: the dispatch's `qa_env` URL (never prod when a staging exists), the role and how
+  to reach it, every 5b (d) precondition, numbered steps with expected results, then at least ONE
+  neighbour-state step and ONE "X does NOT happen". `-` only for a change nobody sees. The person
+  testing it reads that, not the diff.
 - **Then stop.** Write the handoff note (what is built, files touched, how you verified it, the
-  manual list) to the path in your dispatch, commit NOTHING, and return the short `ready` block
-  from your dispatch. Wait for GO or FAIL.
+  manual list, screenshot paths, the HOW-TO-TEST draft) to the path in your dispatch, commit NOTHING, and return the short `ready` block
+  from your dispatch. Wait for the orchestrator's answer.
 
 ### Step 6b - Drift (on GO, git mode only)
 The GO message carries `drift.sh` output: lines of the repo's docs and of memory that still mention
@@ -248,6 +270,8 @@ produced it and the date, never a bare number. Results go on the report's `DRIFT
   the commit that put it there. This flags for YOUR judgment, it is not a hard gate: `password` and
   `token` appear legitimately in form fields, schemas and type definitions. A real-looking value
   means stop and say so in the report; a field name means carry on.
+- **Before pushing**: `CAUGHT:` entries into `bash ~/.claude/skills/loopit/caught-lint.sh {repo}
+  HEAD`; fix every `BAD` line first.
 
 ### Step 8 - Push
 - Push per the resolved branch rule + remote (from your dispatch); honor any "never push X" guardrail. If the

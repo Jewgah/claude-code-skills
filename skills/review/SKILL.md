@@ -65,14 +65,14 @@ Perform a thorough code review of the current changes. Act as a senior developer
 
 For each issue found, report:
 
-**[SEVERITY] Category — File:line**
+**[SEVERITY] Category - File:line**
 Description of the issue and why it matters.
 Suggested fix (if applicable).
 
 Severity levels:
-- **CRITICAL**: Bugs, security holes, data corruption risks — must fix before shipping
-- **WARNING**: Potential problems, edge cases, code smells — should fix
-- **INFO**: Minor suggestions, style issues, improvements — nice to have
+- **CRITICAL**: Bugs, security holes, data corruption risks - must fix before shipping
+- **WARNING**: Potential problems, edge cases, code smells - should fix
+- **INFO**: Minor suggestions, style issues, improvements - nice to have
 
 At the end, provide a **Summary** with:
 - Total issues by severity

@@ -41,7 +41,7 @@ cp "$S" "$S.bak-$(date +%Y%m%d%H%M%S)"
 # add <event> <matcher|""> <command> <timeout|""> <async:true|"">
 add() {
   local event="$1" matcher="$2" cmd="$3" timeout="$4" async="$5" tmp
-  # Already wired? Compare parsed values — grep would miss it, the file stores \" escaped.
+  # Already wired? Compare parsed values - grep would miss it, the file stores \" escaped.
   if jq -e --arg e "$event" --arg c "$cmd" \
         '[.hooks[$e][]?.hooks[]?.command] | index($c) != null' "$S" >/dev/null; then
     skipped+=("hook wiring $event ${matcher:-*} (already wired)"); return
@@ -64,16 +64,16 @@ add PreToolUse       "Skill"        "bash \"$H/log-skill.sh\" tool"          "" 
 add PreToolUse       "ExitPlanMode" "node \"$H/plan-review-gate.mjs\""       10   ""
 add PreToolUse       "Bash"         "bash \"$H/commit-review-gate.sh\""      10   ""
 
-# statusLine: only claim it if unset — never clobber an existing one.
+# statusLine: only claim it if unset - never clobber an existing one.
 if [ "$(jq -r '.statusLine // empty' "$S")" = "" ]; then
   tmp="$(mktemp)"
   jq --arg c "bash \"$H/statusline.sh\"" '.statusLine = {type:"command", command:$c}' "$S" > "$tmp" && mv "$tmp" "$S"
   installed+=("statusLine (project | branch | N uncommitted | review state | not pushed)")
 else
-  skipped+=("statusLine (you already have one — see hooks/statusline.sh to merge by hand)")
+  skipped+=("statusLine (you already have one - see hooks/statusline.sh to merge by hand)")
 fi
 
-jq empty "$S" || { echo "ERROR: settings.json is now invalid — restore the .bak file."; exit 1; }
+jq empty "$S" || { echo "ERROR: settings.json is now invalid - restore the .bak file."; exit 1; }
 
 echo "Installed:"; for i in "${installed[@]:-}"; do [ -n "$i" ] && echo "  + $i"; done
 if [ "${#skipped[@]}" -gt 0 ]; then echo "Skipped:"; for s in "${skipped[@]}"; do echo "  - $s"; done; fi

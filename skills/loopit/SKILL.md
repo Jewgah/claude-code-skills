@@ -23,7 +23,8 @@ rule, it belongs in that repo's `CLAUDE.md`, not in this skill.
 
 **Files beside this one**: `EXECUTOR.md` (the per-task cycle, read by each builder), `CHECKS.md`
 (read by the check-writer), `FORK.md` (read only when a task forks), and the scripts
-`run-checks.sh` (the gate), `drift.sh` (stale-doc finder), `stats.sh` (first-pass rate) with their
+`run-checks.sh` (the gate), `drift.sh` (stale-doc finder), `stats.sh` (first-pass rate),
+`caught-lint.sh` (caught mistakes leave a check) with their
 self-test `test-scripts.sh`. The scripts need `jq`.
 
 ## Inputs
@@ -131,6 +132,10 @@ assume. Read its `CLAUDE.md` + recalled memories, inspect git, and detect toolin
   (no argument gives English; call it as `/explain-dev fr` for French), or none. **Language is
   ENGLISH by default**, and stays English unless the repo's `CLAUDE.md`
   explicitly says otherwise. Output goes to ONE per-product folder under `~/Downloads/loopit/{projectname}/`.
+- **QA env**, from `CLAUDE.md`: `qa_env` (URL, roles, test account), `staging_dev` (a local dev
+  command pointed at staging), `real_ai` (a capped harness that calls the real model). Into the
+  dispatch's rules; a missing one is named missing there and maps to `UNSEEN:` /
+  `REAL-AI: unproven`, never to a FAIL loop.
 - **Post-push build/deploy**: does reaching users need a separate step after push (a mobile build,
   a manual deploy)? Check `CLAUDE.md` (a "Build"/"Deploy"/"Release" section) and tell-tale config
   (`app.json`/`eas.json` -> EAS; a deploy script). If the command is documented, note it for the
@@ -232,7 +237,7 @@ nothing of this session):
 
     Resolved repo rules (Step 0 already done, do not redo):
     {resolved rules: repo path, branch/push rule, verify cmds, review skill,
-     commit convention, client-doc skill + language}
+     commit convention, client-doc skill + language, qa_env, staging_dev, real_ai (or missing)}
 
     Task line (verbatim):
     {task line}
@@ -264,25 +269,29 @@ nothing of this session):
     converge is a decision, not a fourth agent.
 
     At the end of Step 6, write the handoff note (short: what is built, files touched,
-    how you verified it) and return ONLY:
+    how you verified it, screenshot paths, the HOW-TO-TEST draft) and return ONLY:
     STATUS: ready | blocked | escalate | handoff | check-dispute
     HANDOFF: {the note path}
     SUMMARY: {one line: what you built}
     DISPUTE: {only on check-dispute: which intent, and why it is wrong or unachievable}
     PLAN / BLOCKED-ON: {only on escalate / blocked}
+    UNSEEN: {UI diff: each screen not screenshotted, and why, or -}
+    REAL-AI-REQUEST: {only if a real_ai run is needed: exact command, at most 10 calls}
 
     After GO, end with EXACTLY this report block:
     STATUS: shipped | shipped-uncommitted | blocked | push-pending-consent | escalate | handoff
     HANDOFF: {path to the note, only if handoff. The note holds: what shipped, what
     remains, files touched, the exact next step, ATTEMPT n/3, RED-CAUSES (each cause
-    seen red, verbatim), and MUTATION-PROOFS so far. The agent that observed a test
+    seen red, verbatim), MUTATION-PROOFS and CAUGHT so far. The agent that observed a test
     go red is not the one that will file the final report.}
     COMMIT: {sha or -, and always - in no-repo mode}
     BATTLE-TEST: manual: {the checks /battle-test could not run, or -}
-    HOW-TO-TEST: {how a person tests this on staging (a build, for mobile): the URL, which
-    account (a test account when one exists, never a client's real one), then numbered steps,
-    each with its expected result. Continuation lines indented. "-" only for a change nobody
-    can see (docs, config).}
+    HOW-TO-TEST: {the qa_env URL (a build, for mobile; never prod when a staging exists), the
+    role and how to reach it, the test account (never a client's real one), every precondition,
+    numbered steps each with its expected result, then at least ONE neighbour-state step and ONE
+    "X does NOT happen". Continuation lines indented. "-" only for a change nobody can see.}
+    REAL-AI: {proven: the command run | unproven: why | -}
+    UNSEEN: {screens never looked at, and why, or -}
     MUTATION-PROOFS: {for every NEW test asserting against a fake, mock, scan or derived
     list: the mutation you applied and the NAME of the test that went red, quoted from the
     runner. "none needed" ONLY when every new test exercises a pure function with real
@@ -291,6 +300,7 @@ nothing of this session):
     or "nothing cut"; then every change that narrows or alters behaviour that already
     worked, with whether a test covers it, or "nothing narrowed". Silence is not an
     answer: an unanswered TRIM is treated as a skipped step.}
+    CAUGHT: {Step 5e: one entry per line, or "none caught"}
     CHECK-LOGGING: {Step 5d: gaps found, fixed, deliberately left and why; or
     "n/a (repo has no check-logging skill)".}
     CLIENT-DOC: {path or -}
@@ -356,7 +366,14 @@ the cwd: run that queue from a session opened in the repo.
    the task runs WITHOUT a gate, `CHECKS: 0 (check-writer failed)`, `EXISTS:` from its report if any.
 3. **Builder** dispatch with the check-writer's `INTENTS:` and `EXISTS:` lines. Never a path under
    `loopit-checks`, never a check command, never test code.
-4. **Gate**, on `STATUS: ready`: `run-checks.sh {manifest} green {repo | -} {HASH}`. Resume the
+4. **Report check, on `STATUS: ready`, before the gate**: a UI diff with neither screenshot paths
+   in the handoff note nor a non-`-` `UNSEEN:`, or a visible change whose HOW-TO-TEST draft lacks env, role,
+   neighbour step or "does NOT happen": answer `FAIL-REPORT: <what is missing>`. Not a gate round:
+   one retry, then log and go on. A `REAL-AI-REQUEST:`: ask the user (AskUserQuestion) with the
+   command and call count. On yes, grant whatever paid-API consent your setup needs as its own
+   step, then tell the builder "consent given"; on no, "refused". That answer replaces the gate:
+   the gate runs on the NEXT ready.
+   **Gate**, then: `run-checks.sh {manifest} green {repo | -} {HASH}`. Resume the
    builder with SendMessage (the agentId from its dispatch):
    - `green-ok`, or the task has no checks: in git mode first run
      `bash ~/.claude/skills/loopit/drift.sh {repo} {Baseline HEAD}` (information, never a gate), then
@@ -377,10 +394,11 @@ the cwd: run that queue from a session opened in the repo.
      note it wrote at ready, under the handoff rules below.
    - **Every re-dispatch of the same task** (escalate, handoff, dead builder) carries the SAME
      intents, `EXISTS`, manifest, HASH and round count. One check-writer per task, plus one retry.
-5. **After a final report with a COMMIT sha** (git mode, checks installed): `run-checks.sh {manifest}
+5. **After a final report with a COMMIT sha** (git mode): pipe its `CAUGHT:` into `bash ~/.claude/skills/loopit/caught-lint.sh {repo}
+   {COMMIT}`; `BAD` goes to the user. Checks installed: `run-checks.sh {manifest}
    committed {repo} {COMMIT} {HASH}`; `tampered` is shown to the user too. `committed-diff` means a
    check was weakened after GO: show the user before the next task. Then append `CHECKS: {n}, red
-   {red-ok | none | failed}, gate rounds {r}, disputes {d}, first-pass {yes | no | -}`: `yes` only
+   {red-ok | none | failed}, gate rounds {r}, disputes {d}, first-pass {yes | no | -}, {the CAUGHT line}`: `yes` only
    when round 1 was `green-ok`; `-` with no checks.
 
 ### Handling a `STATUS: handoff`
@@ -549,6 +567,7 @@ away), say which ones predate this run instead of restating them as fresh work. 
 - The client-doc files written (one per-product folder).
 - Each task's `CHECKS:` line (how many checks, first-pass or not, gate rounds), every task that
   shipped with NO executable check and why, and every manual check `/battle-test` could not run.
+- Every `NONE` line `caught-lint.sh` printed, verbatim (a caught mistake left without a check).
 - Any deferred findings/follow-ups, and any separate build/deploy still required.
 - **Memory to correct**: every `MEMORY-FIX` line from this run's log entries (in ad-hoc plan mode,
   from the builder's report), as a numbered list (file, old text, new text), ending with "say ok
