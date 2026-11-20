@@ -61,7 +61,7 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 /review-plan                # the active plan-mode plan, or the approach in your last message
 /thermo-nuclear-code-quality-review   # harsh structural review (same scopes as /review-deep)
 
-/loopit                     # run ./loop-tasks.md to completion, one task at a time
+/loopit                     # run ./loop-tasks.md to completion (up to 3 disjoint tasks build at once)
 /loopit FX-02               # run a single task from the queue
 /loopit plan:<path>         # run one approved plan file through the same cycle
 /loopit stats               # first-pass rate over the last 30 days

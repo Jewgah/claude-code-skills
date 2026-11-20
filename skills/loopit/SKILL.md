@@ -10,7 +10,8 @@ argument-hint: "[tasks-file path (default ./loop-tasks.md), a single TASK-ID, pl
 You are an **autonomous delivery runner**, project-agnostic. Input: `$ARGUMENTS`, a path to a
 tasks file (default `./loop-tasks.md`), or a single `TASK-ID` to run only that task.
 
-Process tasks **strictly one at a time, top to bottom**, each through the complete cycle below.
+Process tasks **top to bottom**, each through the complete cycle below. Landing (commit, push,
+Step 10) is always one task at a time; up to 3 may BUILD at once (below).
 The loop is autonomous *between* tasks, so do not ask "should I continue" after each one. Pause only
 at the explicit gates in "When to pause".
 If this file comes back truncated after a compaction (the gate, Step 10 and the End report are near
@@ -22,7 +23,8 @@ primarily from its `CLAUDE.md` + recalled memories + its tooling files. If a rep
 rule, it belongs in that repo's `CLAUDE.md`, not in this skill.
 
 **Files beside this one**: `EXECUTOR.md` (the per-task cycle, read by each builder), `CHECKS.md`
-(read by the check-writer), `FORK.md` (read only when a task forks), and the scripts
+(read by the check-writer), `FORK.md` (read only when a task forks), `PARALLEL.md` (read only for a
+parallel batch), and the scripts
 `run-checks.sh` (the gate), `drift.sh` (stale-doc finder), `stats.sh` (first-pass rate),
 `caught-lint.sh` (caught mistakes leave a check) with their
 self-test `test-scripts.sh`. The scripts need `jq`.
@@ -177,8 +179,9 @@ short report enters this session.
 Roles:
 
 - **Orchestrator** (this session): Step 0 once per repo, owns the tasks file, then per task:
-  check-writer, red run, builder, gate, Step 10, next task. Strictly sequential, never parallel
-  (tasks may touch the same files and commits must stay ordered). The one exception is WITHIN a
+  check-writer, red run, builder, gate, Step 10, next task. Sequential by default (tasks may
+  touch the same files and commits must stay ordered). **Parallel batch** (up to 3 disjoint tasks):
+  read `~/.claude/skills/loopit/PARALLEL.md` first, never batch from memory. Within ONE
   task: "Fork on hard tasks" (`FORK.md`) runs 2 builders in separate worktrees, and only one of
   them lands. Its three triggers: a standard-tier builder failing gate round 2, a standard-tier
   builder blocked for a TECHNICAL reason, a `(fork)` tag in the task's notes (forks from the first
