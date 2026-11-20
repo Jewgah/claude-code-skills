@@ -116,7 +116,7 @@ The builder never grades its own work. Before it starts, a check-writer agent tu
 - **Repo paths containing spaces are handled**, quoted or not. Earlier versions matched the `-C` argument as "anything but a space", so `git -C "~/My Projects/app" commit` wasn't recognised as a commit at all and slipped through ungated.
 
 ```bash
-bash test/run-hooks.sh                      # 59 assertions against this repo's copies
+bash test/run-hooks.sh                      # every assertion against this repo's copies
 HOOKS=~/.claude/hooks bash test/run-hooks.sh # …or against the ones you installed
 ```
 

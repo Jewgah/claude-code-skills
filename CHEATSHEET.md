@@ -1,4 +1,48 @@
-# What each thing does, in one line
+# Cheat sheet
+
+## Start here (2 minutes)
+
+**What this is.** Claude Code is an assistant that writes and changes code in your project for
+you. This kit makes it double-check its own work before it saves anything. Most of it is
+automatic: you keep asking Claude for things as usual, and the checks happen on their own.
+
+**The only 3 commands you need on day one:**
+
+| Type this | What happens |
+|---|---|
+| `/review` | Claude rereads everything it changed and points out bugs before you save. |
+| `/commit` | Claude saves your work with a clear note explaining why. |
+| `/loopit` | You give Claude a to-do list, it does every item on its own. |
+
+Everything else further down is for later, when you hit the situation it describes.
+
+**What a normal session looks like:**
+
+1. You ask: "the login button does nothing, fix it".
+2. For anything bigger than a quick fix, Claude writes a plan. Before showing it to you, it
+   attacks its own plan (what could break, what it forgot). You see the plan once it has survived
+   that.
+3. You say go. Claude changes the code.
+4. Claude tries to save the work. It is **blocked**: nobody has reviewed the change yet.
+5. Claude runs `/review` on itself, fixes what it found, and saves. Done.
+
+Steps 2 and 4 are the whole kit, and you don't have to remember them: they happen on their own
+(the escape hatches are listed below, for the rare time you need one).
+
+**Six words you'll see:**
+
+| Word | Means |
+|---|---|
+| **commit** | Saving a snapshot of your project, with a note. You can always go back to it. |
+| **diff** | The list of lines that changed since the last save. |
+| **plan** | Claude's "here's what I'm about to do", shown before it touches anything. |
+| **hook** | A small automatic rule that runs on its own, like the two blocks above. |
+| **agent** | An extra copy of Claude sent to do one sub-job, like a second reviewer. |
+| **token** | The unit Claude's usage is counted in. More agents = more tokens = slower and costlier. |
+
+---
+
+# Reference: what each thing does, in one line
 
 ## The two automatic gates (you don't call these, they just fire)
 

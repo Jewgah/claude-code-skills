@@ -20,7 +20,7 @@
 - [x] `/dream` - manual memory consolidation: transcript extract (stdlib, self-tested) -> evidence-backed proposals -> applies only the numbers you pick
 - [x] **Hooks** - the plan-review gate, the commit-review gate (a review must be newer than the last commit and the last edit), the usage logger they read, and a review-state status line
 - [x] `install.sh` - one-shot installer (idempotent, skips existing, **merges hook wiring into settings.json** with a backup)
-- [x] `test/run-hooks.sh` - 59 assertions proving the hooks behave as documented (fake HOME, temp repos); `HOOKS=<dir>` targets an installed copy
+- [x] `test/run-hooks.sh` - 60 assertions proving the hooks behave as documented (fake HOME, temp repos); `HOOKS=<dir>` targets an installed copy
 - [x] `CHEATSHEET.md` (plain-words guide) + `ONBOARDING-PROMPT.md` (paste-in setup prompt)
 - [x] README with install + usage instructions
 - [x] MIT license
