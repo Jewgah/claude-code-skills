@@ -61,7 +61,7 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 /review-plan                # the active plan-mode plan, or the approach in your last message
 /thermo-nuclear-code-quality-review   # harsh structural review (same scopes as /review-deep)
 
-/loopit                     # run ./loop-tasks.md to completion (up to 3 disjoint tasks build at once)
+/loopit                     # run ./loop-tasks.md to completion (same-repo tasks on different files build up to 3 at once)
 /loopit FX-02               # run a single task from the queue
 /loopit plan:<path>         # run one approved plan file through the same cycle
 /loopit stats               # first-pass rate over the last 30 days
@@ -92,7 +92,7 @@ Prefer to have Claude do it? Paste [`ONBOARDING-PROMPT.md`](ONBOARDING-PROMPT.md
 - [ ] FX-02 | ../api | Rate-limit /signup - 5/min per IP, 429 with Retry-After
 ```
 
-`- [ ]` pending, `[x]` done, `[~]` blocked. Then run `/loopit`. Per task it plans, reviews the plan, implements, runs the repo's own verify commands, reviews the diff, fixes **every** finding, re-verifies, passes the acceptance checks, commits by explicit path, pushes per the repo's branch rule, writes a plain-language change note, and moves on.
+`- [ ]` pending, `[x]` done, `[~]` blocked. Then run `/loopit`. Per task it plans, reviews the plan, implements, runs the repo's own verify commands, reviews the diff, fixes **every** finding, re-verifies, passes the acceptance checks, commits by explicit path, pushes per the repo's branch rule (once per parallel batch), writes a plain-language change note, and moves on.
 
 The builder never grades its own work. Before it starts, a check-writer agent turns the task into 1 to 3 executable checks (run through the repo's own test runner), proves each one fails today for the right reason, and hands the builder only their intents. When the builder says it is ready, `run-checks.sh` runs the checks and refuses any that changed since. A builder that keeps failing hands off to a fresh context or, after a second failed round, forks into two worktrees and the first one to pass wins. Each report carries a HOW-TO-TEST a tester can follow (the QA URL, the role, every account precondition, a neighbour-state step and one "X does NOT happen"), names any screen it never looked at (`UNSEEN:`), and asks before running a paid real-model check; set `qa_env`, `staging_dev` and `real_ai` in a repo's `CLAUDE.md` to enable them. Every mistake caught along the way must leave a check behind or a reason why none can exist (`caught-lint.sh`). `bash skills/loopit/test-scripts.sh` self-tests the scripts.
 

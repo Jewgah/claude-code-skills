@@ -13,7 +13,7 @@
 - [x] `/thermo-nuclear-code-quality-review` - harsh structural/maintainability review, adapted from Cursor's (MIT, pinned dbf4981)
 - [x] `/choices` - turn blocking product decisions into a message a non-technical stakeholder can answer
 - [x] `/commit` - commit staged work with a why-focused message, refreshing `CLAUDE.md` when the change invalidates it
-- [x] `/loopit` - autonomous task-queue runner, one subagent per task (hidden acceptance checks → plan → review-plan → build → verify → review → battle-test → gate → commit → push → client note), with handoffs and fork-on-hard-tasks
+- [x] `/loopit` - autonomous task-queue runner, one subagent per task (hidden acceptance checks → plan → review-plan → build → verify → review → battle-test → gate → commit → push → client note), with handoffs, fork-on-hard-tasks and parallel batches of up to 3 disjoint tasks
 - [x] `/explain-dev` + `/vulgarize` - client-facing change notes (structured template / casual text), EN + FR
 - [x] `/sessions` - recent sessions with their `claude --resume` commands
 - [x] `/skill-stats` - usage leaderboard from the durable log
