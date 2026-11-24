@@ -7,13 +7,15 @@
 # Every window in rate_limits is shown (5h, week, and any other bucket the payload carries),
 # so a new bucket appears by itself. Absent fields are skipped: rate_limits only exists for
 # subscription plans and only after the first API response of the session.
-input=""; [ -t 0 ] || input="$(cat)"
+# read with a timeout, never $(cat): run by hand with stdin closed or never ending, cat would hang forever
+input=""; [ -t 0 ] || IFS= read -r -t 2 -d '' input 2>/dev/null
 session=""
 if [ -n "$input" ] && command -v jq >/dev/null 2>&1; then
   session="$(printf '%s' "$input" | jq -r '
-    [ (.model.display_name // empty),
-      (.effort.level // empty),
-      ((.rate_limits // {}) | to_entries[] | select((.value | type) == "object" and (.value.used_percentage | type) == "number")
+    def word: strings | gsub("[[:cntrl:]]"; " ") | select(. != "");   # one unexpected shape must not drop the rest
+    [ (.model | objects | .display_name | word),
+      (.effort | objects | .level | word),
+      (.rate_limits | objects | to_entries[] | select((.value | type) == "object" and (.value.used_percentage | type) == "number")
         | "\({five_hour:"5h",seven_day:"week"}[.key] // .key) \(.value.used_percentage | round)%") ]
     | join(" | ")' 2>/dev/null)"
   [ -n "$session" ] && session=" | $session"

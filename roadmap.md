@@ -97,6 +97,9 @@
   with no change here. Claude Code only sends `rate_limits` on subscription plans and after the
   first API response, and each window can be missing on its own: a missing field is skipped.
 - Needs `jq`; without it, or with no JSON on stdin, the line is what it was before.
+- Review follow-up, same day: stdin is read with a 2 second timeout instead of `cat` (run by hand
+  with stdin closed, the first version hung forever), and a wrong-typed, empty or multi-line field
+  is skipped or flattened instead of dropping the whole model / effort / usage part.
 
 ### 2026-10-30 - status line: branches that were never pushed
 

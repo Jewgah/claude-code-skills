@@ -161,6 +161,13 @@ s=$(cd "$E" && jq -n '{model:{display_name:"Opus"}}' | bash "$HOOKS/statusline.s
 case "$s" in *"| Opus") ok "missing effort and rate_limits are skipped: $s";; *) bad "statusline partial session" "$s";; esac
 s=$(cd "$E" && jq -n '{model:{display_name:"Opus"},rate_limits:{five_hour:null,seven_day:{used_percentage:"x"},spend_limit:{used_percentage:62.8}}}' | bash "$HOOKS/statusline.sh")
 case "$s" in *"| Opus | spend_limit 63%") ok "a malformed window is skipped, the rest stays: $s";; *) bad "statusline bad window" "$s";; esac
+s=$(cd "$E" && jq -n '{model:"Opus",effort:{level:"high"},rate_limits:[1]}' | bash "$HOOKS/statusline.sh")
+case "$s" in *"uncommitted | high") ok "wrong-typed model and rate_limits are skipped, effort stays: $s";; *) bad "statusline wrong types" "$s";; esac
+s=$(cd "$E" && jq -n '{model:{display_name:""},effort:{level:"a\nb"}}' | bash "$HOOKS/statusline.sh")
+case "$s" in *"uncommitted | a b") ok "empty name skipped, newline flattened: $s";; *) bad "statusline empty or multiline" "$s";; esac
+s=$(cd "$E" && bash "$HOOKS/statusline.sh" <&-)
+case "$s" in *"uncommitted") ok "closed stdin does not hang: $s";; *) bad "statusline closed stdin" "$s";; esac
+s=$(cd /tmp && jq -n '{model:{display_name:"Opus"}}' | bash "$HOOKS/statusline.sh"); [ "$s" = "no repo | Opus" ] && ok "outside a repo with a session: $s" || bad "statusline no-repo session" "$s"
 s=$(cd "$E" && printf 'not json' | bash "$HOOKS/statusline.sh")
 case "$s" in *"uncommitted") ok "malformed session JSON is ignored: $s";; *) bad "statusline bad json" "$s";; esac
 
