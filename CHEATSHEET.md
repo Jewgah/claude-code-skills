@@ -110,7 +110,7 @@ catch generic mistakes; with it they catch *your* mistakes.
 
 - `/review-deep`, `/loopit` and `/loopable` spawn extra agents, so they cost noticeably more tokens
   than `/review`. Use the cheap one by default.
-- The status line shows `project | branch | N uncommitted | reviewed / not reviewed | not pushed` so you can see the commit gate's
-  verdict before you hit it.
+- The status line shows `project | branch | N uncommitted | reviewed / not reviewed | not pushed | model | effort | plan usage` so you can see the commit gate's
+  verdict before you hit it, and which model, effort and share of your plan windows the session is on.
 - Everything above is plain markdown in `~/.claude/skills/` and `~/.claude/commands/`. Open any of
   them and edit the wording: they're instructions, not code.

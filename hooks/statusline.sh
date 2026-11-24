@@ -1,10 +1,26 @@
 #!/usr/bin/env bash
-# statusLine: project | branch | N uncommitted | review state | push state.
+# statusLine: project | branch | N uncommitted | review state | push state | model | effort | plan usage.
 # Review state mirrors commit-review-gate's logic, so you SEE the gate before you hit it:
 #   reviewed     = /review or /review-deep ran in this repo after the last commit AND the last edit -> commit will pass
 #   not reviewed = the gate will block your next commit
+# Claude Code pipes the session as JSON on stdin: model, effort, plan usage windows.
+# Every window in rate_limits is shown (5h, week, and any other bucket the payload carries),
+# so a new bucket appears by itself. Absent fields are skipped: rate_limits only exists for
+# subscription plans and only after the first API response of the session.
+input=""; [ -t 0 ] || input="$(cat)"
+session=""
+if [ -n "$input" ] && command -v jq >/dev/null 2>&1; then
+  session="$(printf '%s' "$input" | jq -r '
+    [ (.model.display_name // empty),
+      (.effort.level // empty),
+      ((.rate_limits // {}) | to_entries[] | select((.value | type) == "object" and (.value.used_percentage | type) == "number")
+        | "\({five_hour:"5h",seven_day:"week"}[.key] // .key) \(.value.used_percentage | round)%") ]
+    | join(" | ")' 2>/dev/null)"
+  [ -n "$session" ] && session=" | $session"
+fi
+
 root="$(git rev-parse --show-toplevel 2>/dev/null)"
-if [ -z "$root" ]; then echo "no repo"; exit 0; fi
+if [ -z "$root" ]; then echo "no repo${session}"; exit 0; fi
 
 project="$(basename "$root")"
 branch="$(git branch --show-current 2>/dev/null)"; : "${branch:=detached}"   # empty, exit 0, on a detached HEAD
@@ -44,4 +60,4 @@ elif [ "$branch" != "detached" ] && [ -n "$(git remote 2>/dev/null)" ] \
   push=" | not pushed"   # no upstream: HEAD has commits no remote ref contains (never pushed, or pushed without -u then committed)
 fi
 
-echo "${project} | ${branch} | ${dirty} uncommitted${state}${push}"
+echo "${project} | ${branch} | ${dirty} uncommitted${state}${push}${session}"

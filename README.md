@@ -33,7 +33,7 @@ Everything else here is either what those gates run, or a tool that reuses their
 | `/dream` | Skill | Reads your last few days of transcripts and proposes memory changes, each backed by the lines you actually typed and a count: a correction you repeated, a call that keeps failing, a memory note a transcript proves wrong. Writes nothing until you pick numbers. Local only, stdlib Python. |
 | `/skill-stats` | Command | Leaderboard of which of these you actually use, from a durable usage log that survives transcript cleanup. |
 
-Plus four hooks in `hooks/`: the two gates, the usage logger they read, and a status line showing `project | branch | N uncommitted | reviewed / not reviewed | not pushed` so you see the gate's verdict before it blocks you.
+Plus four hooks in `hooks/`: the two gates, the usage logger they read, and a status line showing `project | branch | N uncommitted | reviewed / not reviewed | not pushed | model | effort | plan usage` so you see the gate's verdict before it blocks you, plus which model and effort the session runs on and how much of your plan windows (5h, week) is spent.
 
 ### Why multi-agent review?
 
@@ -124,7 +124,7 @@ Temp dirs and a fake `HOME`: it touches nothing of yours.
 
 ## Requirements
 
-- `jq`: the commit gate, the installer and `/loopit`'s scripts
+- `jq`: the commit gate, the installer, `/loopit`'s scripts and the status line's model / effort / usage part (without it that part is left out)
 - `perl` and `shasum` (or `sha1sum`): `/loopit`'s gate. Its self-test passes on macOS and Debian; on BusyBox (Alpine) `drift.sh` misses doc hits
 - `node`: the plan gate
 - `python3`: `/sessions`, `/dream`, and the commit gate and status line (to date the newest edit; without it they fall back to "since the last commit")

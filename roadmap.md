@@ -87,6 +87,17 @@
 - **Upgrading**: `install.sh` skips a skill folder that already exists, so an installed v2 stays v2.
   Move `~/.claude/skills/loopit` aside, then re-run `./install.sh`.
 
+### 2026-11-24 - status line: model, effort, plan usage
+
+- The status line now ends with the session's model, its effort level and the share of each plan
+  usage window spent, for example `repo | main | 0 uncommitted | Opus | high | 5h 24% | week 41%`.
+  It reads the JSON Claude Code pipes on stdin (`model.display_name`, `effort.level`,
+  `rate_limits.*.used_percentage`).
+- Every window present in `rate_limits` is printed, so a bucket Claude Code adds later shows up
+  with no change here. Claude Code only sends `rate_limits` on subscription plans and after the
+  first API response, and each window can be missing on its own: a missing field is skipped.
+- Needs `jq`; without it, or with no JSON on stdin, the line is what it was before.
+
 ### 2026-10-30 - status line: branches that were never pushed
 
 - The status line said nothing about a branch with no upstream, so a branch that was never pushed

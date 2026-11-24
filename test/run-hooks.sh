@@ -155,6 +155,15 @@ s=$(cd "$E" && CLAUDE_SKILL_LOG="$LOG" bash "$HOOKS/statusline.sh")
 case "$s" in *"not pushed"*) bad "statusline no commits yet" "$s";; *) ok "no commits yet, nothing to push: $s";; esac
 s=$(cd /tmp && bash "$HOOKS/statusline.sh"); [ "$s" = "no repo" ] && ok "outside a repo: $s" || bad "statusline no-repo" "$s"
 
+s=$(cd "$E" && jq -n '{model:{display_name:"Opus"},effort:{level:"high"},rate_limits:{five_hour:{used_percentage:23.5},seven_day:{used_percentage:41.2}}}' | bash "$HOOKS/statusline.sh")
+case "$s" in *"| Opus | high | 5h 24% | week 41%") ok "session JSON adds model, effort, usage: $s";; *) bad "statusline session" "$s";; esac
+s=$(cd "$E" && jq -n '{model:{display_name:"Opus"}}' | bash "$HOOKS/statusline.sh")
+case "$s" in *"| Opus") ok "missing effort and rate_limits are skipped: $s";; *) bad "statusline partial session" "$s";; esac
+s=$(cd "$E" && jq -n '{model:{display_name:"Opus"},rate_limits:{five_hour:null,seven_day:{used_percentage:"x"},spend_limit:{used_percentage:62.8}}}' | bash "$HOOKS/statusline.sh")
+case "$s" in *"| Opus | spend_limit 63%") ok "a malformed window is skipped, the rest stays: $s";; *) bad "statusline bad window" "$s";; esac
+s=$(cd "$E" && printf 'not json' | bash "$HOOKS/statusline.sh")
+case "$s" in *"uncommitted") ok "malformed session JSON is ignored: $s";; *) bad "statusline bad json" "$s";; esac
+
 echo "== usage logger =="
 rm -f "$FH/.claude/skill-usage.log"
 jq -n --arg w "$R" '{prompt:"/review-deep staged",cwd:$w}' | HOME="$FH" bash "$LOGGER" prompt
